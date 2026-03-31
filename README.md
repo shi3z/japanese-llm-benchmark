@@ -45,17 +45,21 @@ JSONL file with the following structure:
 {"text": "Long Japanese text to summarize...", "summary": "Reference summary"}
 ```
 
-## Tested Models (RTX 5060 Ti 8GB)
+## Benchmark Results (RTX 5060 Ti 8GB)
 
-| Model | Size | Speed (tok/s) | ROUGE-L | Notes |
-|-------|------|---------------|---------|-------|
-| Nemotron-3-Nano:4b | 2.8GB | ~5 | 0.11 | Best Japanese quality |
-| Qwen3:4b | 2.5GB | ~115 | 0.03 | Fast but thinking-only |
-| Llama3.2:3b | 2.0GB | ~154 | TBD | General purpose |
-| Phi4-mini | 2.5GB | TBD | TBD | Microsoft model |
-| Gemma3:4b | 3.3GB | TBD | TBD | Google model |
-| Mistral:7b-Q4 | 4.4GB | TBD | TBD | General purpose |
-| DeepSeek-R1:7b | 4.7GB | TBD | TBD | Reasoning model |
+### Combined Quantitative + Qualitative Evaluation
+
+| Model | Size | Tok/s | ROUGE-L | Fluency | Accuracy | Overall | Recommendation |
+|-------|------|-------|---------|---------|----------|---------|----------------|
+| **gemma3:4b** | 3.3GB | 117 | 0.214 | 5.0 | 4.0 | **4.0** | **Best Overall** |
+| llama3.2:3b | 2.0GB | **154** | 0.224 | 4.0 | 2.5 | 2.5 | Fastest |
+| nemotron-3-nano:4b | 2.8GB | 6 | 0.210 | 3.5 | 2.5 | 2.5 | Quality but slow |
+| phi4-mini | 2.5GB | 130 | 0.203 | 4.0 | 2.0 | 2.0 | Fast |
+| mistral:7b-Q4 | 4.4GB | 1 | 0.185 | 2.5 | 1.0 | 1.0 | Not recommended |
+| deepseek-r1:7b | 4.7GB | 1 | 0.163 | 1.5 | 1.0 | 1.0 | Not recommended |
+| qwen3:4b | 2.5GB | 113 | 0.005 | 1.0 | 1.0 | 1.0 | Thinking-only |
+
+*Qualitative scores (1-5) evaluated by Claude CLI*
 
 ## License
 
