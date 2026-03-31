@@ -1,0 +1,26 @@
+# Data files
+*.jsonl
+dataset*.json
+benchmark_results.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+*.egg-info/
+
+# Logs
+*.log
+server.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
