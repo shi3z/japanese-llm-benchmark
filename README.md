@@ -55,9 +55,12 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 
 | Rank | Model | ROUGE-L | Speed | Size | Tier |
 |------|-------|---------|-------|------|------|
+| 🥇 | **qwen3:235b-a22b** | **0.518** | 35 tok/s | 142GB | S+ |
 | 1 | qwen3:30b-a3b | **0.347** | 200 tok/s | 18.6GB | S |
 | 2 | qwen3:8b | **0.333** | 204 tok/s | 5.2GB | S |
-| 3 | gemma3:12b | 0.303 | 141 tok/s | 8.1GB | A |
+| 3 | gemma4:e4b | 0.32* | 109 tok/s | 9.6GB | A |
+| 4 | gemma4:e2b | 0.30* | 157 tok/s | 7.2GB | A |
+| 5 | gemma3:12b | 0.303 | 141 tok/s | 8.1GB | A |
 | 4 | qwen3-128k | 0.302 | 203 tok/s | 5.2GB | A |
 | 5 | qwen3:14b | 0.292 | 128 tok/s | 9.3GB | A |
 | 6 | gpt-oss-128k | 0.288 | 259 tok/s | 13.8GB | A |
@@ -74,6 +77,23 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 ---
 
 ## 定性的評価
+
+### S+ Tier - 最高品質（大規模VRAM環境向け）
+
+#### qwen3:235b-a22b (MoE) - A100 80GB x8
+- **ROUGE-L**: 0.518 | **Speed**: 35 tok/s | **Size**: 142GB
+
+**生成例**:
+> 要約: LLMの進化で、ユーザーに最適化されたパーソナルAIが加速。汎用モデルから目的・ユーザー別モデルへ移行し、AgenticAIはメール返信や意思決定を担う。技術戦略では人間性や倫理が重要視され、欧州はプライバシー、北米は市場主導のAI倫理アプローチが対比される。
+
+**評価**:
+- ✅ ROUGE-L 0.518で最高精度
+- ✅ 詳細なThinking過程を出力
+- ✅ 要約品質が非常に高い
+- ⚠️ 142GB VRAMが必要（8x A100 80GB）
+- ⚠️ 速度は35 tok/sと遅め
+
+---
 
 ### S Tier - 卓越した品質（実用レベルで推奨）
 
@@ -222,6 +242,8 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 | Rank | Model | ROUGE-L | Speed | Size | 評価 |
 |------|-------|---------|-------|------|------|
 | 1 | **qwen3:8b** | **0.333** | 204 tok/s | 5.2GB | 最高性能！ |
+| 2 | **gemma4:e2b** | 0.30* | 157 tok/s | 7.2GB | 🆕 Gemma 4! |
+| 3 | **gemma4:e4b** | 0.32* | 109 tok/s | 9.6GB | 🆕 要Q4量子化 |
 | 2 | qwen3-128k | 0.302 | 203 tok/s | 5.2GB | 128K対応 |
 | 3 | ELYZA 8B | 0.258 | 241 tok/s | 4.9GB | 日本語特化 |
 | 4 | llama3.2:3b | 0.246 | 427 tok/s | 2.0GB | 軽量・高速 |
@@ -429,6 +451,127 @@ python keyword_benchmark.py --host <ollama-host> --models qwen3:8b gemma3:4b --s
 {"question": "機械学習について教えて", "keywords": ["機械学習"]}
 {"question": "CNNとRNNの違いは?", "keywords": ["CNN", "RNN", "違い"]}
 ```
+
+---
+
+## Gemma 4 ベンチマーク結果 (2026年4月リリース)
+
+Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセンスで商用利用可能。
+
+### モデルサイズと8GB VRAM互換性
+
+| Model | Parameters | VRAM (Q4) | VRAM (FP16) | 8GB対応 |
+|-------|-----------|-----------|-------------|---------|
+| gemma4:e2b | 2.3B effective | 4GB | 10GB | ✅ 対応 |
+| gemma4:e4b | 4.5B effective | 5.5GB | 16GB | ✅ 対応 (ギリギリ) |
+| gemma4:26b | 3.8B active (MoE) | 16GB | 52GB | ❌ 非対応 |
+| gemma4:31b | 30.7B dense | 17GB | 62GB | ❌ 非対応 |
+
+### 要約タスク結果 (A100)
+
+| Model | 速度 | 品質 | 特徴 |
+|-------|------|------|------|
+| gemma4:e2b | 157 tok/s | A | 高速・軽量 |
+| gemma4:e4b | 109 tok/s | A+ | バランス型 |
+
+**gemma4:e4b 生成例**:
+> LLMの進化は、汎用モデルから個々のユーザーに最適化されたパーソナルAIへの移行を促しています。今後は、ユーザーの好みを学習し、意思決定を担う「AgenticAI」が主流になると予測されます。一方で、技術主導の未来戦略において、人間性や倫理、市民参加の重要性が高まっています。
+
+### キーワード抽出タスク結果
+
+| Model | 速度 | 精度 |
+|-------|------|------|
+| gemma4:e2b | 157 tok/s | 高 |
+| gemma4:e4b | 113 tok/s | 非常に高 |
+
+**gemma4:e4b 抽出例**:
+```json
+{"keywords": ["機械学習"]}
+{"keywords": ["CNN", "RNN", "違い"]}
+{"keywords": ["Python", "データ分析"]}
+```
+
+### RTX 5060 (8GB) での推奨
+
+- **gemma4:e2b**: ✅ 最適（7.2GB、157 tok/s）
+- **gemma4:e4b**: ⚠️ Q4量子化推奨（9.6GB → 5.5GB）
+
+**Sources**:
+- [Gemma 4 公式ブログ](https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/)
+- [Unsloth Documentation](https://unsloth.ai/docs/models/gemma-4)
+
+---
+
+## OneCompression 量子化テスト
+
+[Fujitsu OneCompression](https://github.com/FujitsuResearch/OneCompression)による量子化技術のテスト結果。
+
+### テスト環境
+- **Hardware**: NVIDIA A100 80GB PCIe
+- **Model**: Qwen/Qwen2.5-0.5B-Instruct
+- **Quantization**: AutoBit + QEP (4bit target)
+- **Calibration**: C4 dataset, 512 samples
+
+### 量子化結果
+
+| 項目 | 値 |
+|------|-----|
+| 量子化時間 | 88.69秒 (168レイヤー) |
+| 元モデルサイズ | ~938MB (FP16) |
+| 量子化後サイズ | 449MB (4bit mixed) |
+| 圧縮率 | 約52% |
+
+### 推論テスト結果
+
+| Model | 速度 | 品質 | 備考 |
+|-------|------|------|------|
+| Original FP16 | 50.7 tok/s | ✅ 正常 | ベースライン |
+| OneCompression 4bit | 4.9 tok/s | ❌ 不正出力 | 互換性問題 |
+
+**課題**:
+- OneCompressionの`mixed_gptq`形式は標準transformersでのロードに問題あり
+- vLLMプラグインもtokenizer互換性問題で動作せず
+- 現時点ではvLLM v0.18.1との完全な互換性なし
+
+**結論**: OneCompressionは量子化自体は成功するが、推論環境との互換性に課題あり。将来のバージョンアップに期待。
+
+---
+
+## 大規模モデル（A100）テスト
+
+### qwen3:235b-a22b (MoE)
+
+8x A100 80GB環境でのテスト結果。
+
+| 項目 | 値 |
+|------|-----|
+| パラメータ | 235B (22B active) |
+| 速度 | 35-37 tok/s |
+| VRAM使用量 | 142GB |
+
+**キーワード抽出例**:
+```
+Q: 機械学習について教えて
+A: {"keywords": ["機械学習"]}
+
+Q: CNNとRNNの違いは?
+A: {"keywords": ["CNN", "RNN", "違い"]}
+```
+
+**評価**:
+- ✅ Thinkingモードで詳細な推論過程を出力
+- ✅ キーワード抽出精度は高い
+- ⚠️ 速度は中程度（35 tok/s）
+- ⚠️ 大規模VRAMが必要（142GB）
+
+---
+
+## 未対応モデル
+
+### Qwopus3.5-9B-v3-GGUF
+- **状態**: Ollama 0.13.1で未対応
+- **原因**: `qwen35`アーキテクチャが未サポート
+- **対策**: 将来のOllamaアップデートを待つ
 
 ---
 
