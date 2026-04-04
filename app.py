@@ -73,8 +73,78 @@ def calculate_rouge(generated: str, reference: str) -> Dict[str, float]:
         'rouge_l': rouge_l
     }
 
-def generate_summary(model: str, text: str, max_tokens: int = 300) -> dict:
-    prompt = f"""以下の文章を200文字程度で要約してください。要約のみを出力し、説明は不要です。
+def is_thinking_model(model: str) -> bool:
+    """Check if model is a thinking/reasoning model"""
+    thinking_patterns = ['qwen3', 'gpt-oss', 'deepseek-r1', 'o1', 'thinking']
+    return any(p in model.lower() for p in thinking_patterns)
+
+def extract_japanese_summary(text: str) -> str:
+    """Extract Japanese text from thinking model output"""
+    if not text:
+        return ""
+
+    # Remove thinking blocks
+    if '<think>' in text and '</think>' in text:
+        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+    if '</think>' in text:
+        text = text.split('</think>')[-1]
+
+    # First, try to find quoted Japanese text
+    quoted_japanese = re.findall(r'[「"\']([\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff、。\s]+)[」"\']', text)
+    if quoted_japanese:
+        best = max(quoted_japanese, key=len)
+        if len(best) >= 50:
+            return best.strip()
+
+    # Try to find Japanese sentences
+    japanese_sentences = re.findall(r'([\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]+[、。！？\s]*)+', text)
+    if japanese_sentences:
+        substantial = [s for s in japanese_sentences if len(s) >= 20]
+        if substantial:
+            return ''.join(substantial).strip()
+
+    # Fallback: Extract all Japanese characters
+    japanese_chars = re.findall(r'[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff、。「」（）！？\s]+', text)
+    if japanese_chars:
+        combined = ''.join(japanese_chars).strip()
+        combined = re.sub(r'\s+', '', combined)
+        if len(combined) >= 20:
+            return combined
+
+    return ""
+
+def get_model_options(model: str) -> dict:
+    """Get appropriate options for each model"""
+    options = {'temperature': 0.3}
+    if 'gpt-oss' in model.lower():
+        options['num_predict'] = 1500
+        options['num_ctx'] = 16384
+    elif 'qwen3' in model.lower():
+        options['num_predict'] = 1000
+        options['num_ctx'] = 8192
+    elif 'deepseek' in model.lower():
+        options['num_predict'] = 1000
+        options['num_ctx'] = 8192
+    elif 'nemotron' in model.lower():
+        options['num_predict'] = 800
+        options['num_ctx'] = 8192
+    else:
+        options['num_predict'] = 500
+        options['num_ctx'] = 4096
+    return options
+
+def generate_summary(model: str, text: str, max_tokens: int = None) -> dict:
+    # For thinking models, use special prompt to disable thinking
+    if is_thinking_model(model):
+        prompt = f"""以下の文章を200文字程度の日本語で要約してください。
+思考過程は不要です。要約のみを日本語で出力してください。
+
+文章：
+{text[:4000]}
+
+要約：/no_think"""
+    else:
+        prompt = f"""以下の文章を200文字程度で要約してください。要約のみを出力し、説明は不要です。
 
 文章：
 {text[:4000]}
@@ -83,13 +153,17 @@ def generate_summary(model: str, text: str, max_tokens: int = 300) -> dict:
 
     start_time = time.time()
     try:
+        options = get_model_options(model)
+        if max_tokens is not None:
+            options['num_predict'] = max_tokens
+
         response = requests.post(
             'http://localhost:11434/api/generate',
             json={
                 'model': model,
                 'prompt': prompt,
                 'stream': False,
-                'options': {'num_predict': max_tokens, 'temperature': 0.3}
+                'options': options
             },
             timeout=300
         )
@@ -97,12 +171,16 @@ def generate_summary(model: str, text: str, max_tokens: int = 300) -> dict:
         elapsed = time.time() - start_time
 
         output = data.get('response', '') or ''
-        thinking = data.get('thinking', '')
+        thinking = data.get('thinking', '') or ''
 
-        if '</think>' in output:
+        # For thinking models, extract actual Japanese summary
+        if is_thinking_model(model):
+            if not output.strip() and thinking:
+                output = extract_japanese_summary(thinking)
+            else:
+                output = extract_japanese_summary(output)
+        elif '</think>' in output:
             output = output.split('</think>')[-1].strip()
-        elif not output and thinking:
-            output = thinking
 
         eval_count = data.get('eval_count', len(output))
         eval_duration = data.get('eval_duration', elapsed * 1e9) / 1e9

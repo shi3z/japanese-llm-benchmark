@@ -76,49 +76,149 @@ def calculate_rouge(generated: str, reference: str) -> Dict[str, float]:
         'rouge_l_f': rouge_l
     }
 
-def generate_summary(model: str, text: str, max_tokens: int = 300) -> tuple:
+def is_thinking_model(model: str) -> bool:
+    """Check if model is a thinking/reasoning model"""
+    thinking_patterns = ['qwen3', 'qwen3.5', 'gpt-oss', 'deepseek-r1', 'o1', 'thinking', 'reasoning']
+    return any(p in model.lower() for p in thinking_patterns)
+
+def extract_japanese_summary(text: str) -> str:
+    """Extract Japanese text from thinking model output"""
+    if not text:
+        return ""
+
+    # Remove thinking blocks
+    if '<think>' in text and '</think>' in text:
+        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+    if '</think>' in text:
+        text = text.split('</think>')[-1]
+
+    text = text.strip()
+
+    # Check if text is already predominantly Japanese (contains Japanese chars and not mostly English)
+    japanese_char_count = len(re.findall(r'[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]', text))
+    if japanese_char_count >= 20 and japanese_char_count > len(text) * 0.3:
+        # Text is already Japanese - return as is (preserving LLM, AI, etc.)
+        return text.strip()
+
+    # First, try to find quoted Japanese text (often the summary is quoted)
+    # Pattern: Japanese text between quotes - now includes alphanumeric for terms like LLM, AI
+    quoted_japanese = re.findall(r'[「"\']([\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff\w、。\s]+)[」"\']', text)
+    if quoted_japanese:
+        # Return the longest quoted Japanese text
+        best = max(quoted_japanese, key=len)
+        if len(best) >= 50:
+            return best.strip()
+
+    # Try to find Japanese sentences (continuous text with Japanese chars, allowing alphanumeric)
+    # Match sentences ending with Japanese punctuation
+    japanese_sentences = re.findall(r'[^\n。]*[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff][^\n。]*。', text)
+    if japanese_sentences:
+        # Filter sentences that contain substantial Japanese
+        substantial = [s for s in japanese_sentences if len(re.findall(r'[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]', s)) >= 10]
+        if substantial:
+            return ''.join(substantial).strip()
+
+    # Fallback: Extract all text containing Japanese characters (including surrounding context)
+    lines = text.split('\n')
+    japanese_lines = [line for line in lines if re.search(r'[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]', line)]
+    if japanese_lines:
+        combined = ''.join(japanese_lines).strip()
+        if len(combined) >= 20:
+            return combined
+
+    return text.strip() if text else ""
+
+def get_model_options(model: str) -> dict:
+    """Get appropriate options for each model"""
+    options = {
+        'temperature': 0.3
+    }
+
+    # Thinking models need more tokens and larger context (128K)
+    if 'gpt-oss' in model.lower():
+        options['num_predict'] = 32768  # 32K output tokens
+        options['num_ctx'] = 131072  # 128K context for gpt-oss
+    elif 'qwen3' in model.lower() or 'qwen3.5' in model.lower():
+        options['num_predict'] = 32768  # 32K output tokens
+        options['num_ctx'] = 131072  # 128K context for qwen3/qwen3.5
+    elif 'deepseek' in model.lower():
+        options['num_predict'] = 1000
+        options['num_ctx'] = 8192
+    elif 'nemotron' in model.lower():
+        options['num_predict'] = 800
+        options['num_ctx'] = 8192
+    else:
+        options['num_predict'] = 500
+        options['num_ctx'] = 4096
+
+    return options
+
+def generate_summary(model: str, text: str, max_tokens: int = None, ollama_host: str = 'localhost') -> tuple:
     """Generate summary using Ollama API"""
-    prompt = f"""以下の文章を200文字程度で要約してください。要約のみを出力し、説明は不要です。
+
+    # For thinking models, use full text with large context
+    if is_thinking_model(model):
+        max_text_len = 20000  # Full text for 128K context thinking models
+        prompt = f"""以下の文章を200文字程度の日本語で要約してください。
 
 文章：
-{text[:4000]}
+{text[:max_text_len]}
 
 要約："""
-    
+    else:
+        max_text_len = 4000
+        prompt = f"""以下の文章を200文字程度で要約してください。要約のみを出力し、説明は不要です。
+
+文章：
+{text[:max_text_len]}
+
+要約："""
+
     start_time = time.time()
     try:
+        # Get model-specific options (includes num_ctx, num_predict, temperature)
+        options = get_model_options(model)
+        if max_tokens is not None:
+            options['num_predict'] = max_tokens
+
+        # Handle host with or without port
+        if ':' in ollama_host:
+            api_url = f'http://{ollama_host}/api/generate'
+        else:
+            api_url = f'http://{ollama_host}:11434/api/generate'
+
         response = requests.post(
-            'http://localhost:11434/api/generate',
+            api_url,
             json={
                 'model': model,
                 'prompt': prompt,
                 'stream': False,
-                'options': {
-                    'num_predict': max_tokens,
-                    'temperature': 0.3
-                }
+                'options': options
             },
             timeout=300
         )
         data = response.json()
         elapsed = time.time() - start_time
-        
-        # Handle thinking models
+
+        # Handle thinking models - check both response and thinking fields
         output = data.get('response', '') or ''
-        thinking = data.get('thinking', '')
-        
-        # Extract actual response after </think> tag if present
-        if '</think>' in output:
+        thinking = data.get('thinking', '') or ''
+
+        # For thinking models, extract actual Japanese summary
+        if is_thinking_model(model):
+            # If response is empty but thinking has content, extract from thinking
+            if not output.strip() and thinking:
+                output = extract_japanese_summary(thinking)
+            else:
+                output = extract_japanese_summary(output)
+        elif '</think>' in output:
             output = output.split('</think>')[-1].strip()
-        elif not output and thinking:
-            # For models that only output thinking
-            output = thinking.split('\n')[-1] if thinking else ''
-        
+
         eval_count = data.get('eval_count', len(output))
         eval_duration = data.get('eval_duration', elapsed * 1e9) / 1e9
-        
+
         tokens_per_sec = eval_count / eval_duration if eval_duration > 0 else 0
-        
+
         return output.strip(), elapsed, tokens_per_sec, eval_count
     except Exception as e:
         elapsed = time.time() - start_time
@@ -128,10 +228,11 @@ def run_benchmark(
     dataset_path: str,
     models: List[str],
     num_samples: int = 10,
-    output_path: str = 'benchmark_results.json'
+    output_path: str = 'benchmark_results.json',
+    ollama_host: str = 'localhost'
 ) -> List[BenchmarkResult]:
     """Run benchmark on specified models"""
-    
+
     # Load dataset
     samples = []
     with open(dataset_path, 'r', encoding='utf-8') as f:
@@ -139,19 +240,19 @@ def run_benchmark(
             if i >= num_samples:
                 break
             samples.append(json.loads(line))
-    
+
     results = []
-    
+
     for model in models:
         print(f'\n=== Benchmarking {model} ===')
-        
+
         for idx, sample in enumerate(samples):
             print(f'  Sample {idx+1}/{len(samples)}...', end=' ', flush=True)
-            
+
             text = sample['text']
             reference = sample['summary']
-            
-            generated, elapsed, tps, tokens = generate_summary(model, text)
+
+            generated, elapsed, tps, tokens = generate_summary(model, text, ollama_host=ollama_host)
             
             # Calculate ROUGE scores
             rouge_scores = calculate_rouge(generated, reference)
@@ -210,20 +311,22 @@ def print_summary(results: List[BenchmarkResult]):
 
 if __name__ == '__main__':
     import argparse
-    
+
     parser = argparse.ArgumentParser(description='Japanese LLM Benchmark')
     parser.add_argument('--dataset', default='~/dataset_from_logs.jsonl')
     parser.add_argument('--models', nargs='+', default=['nemotron-3-nano:4b', 'qwen3:4b'])
     parser.add_argument('--samples', type=int, default=5)
     parser.add_argument('--output', default='benchmark_results.json')
-    
+    parser.add_argument('--host', default='localhost', help='Ollama host')
+
     args = parser.parse_args()
-    
+
     results = run_benchmark(
         dataset_path=Path(args.dataset).expanduser(),
         models=args.models,
         num_samples=args.samples,
-        output_path=args.output
+        output_path=args.output,
+        ollama_host=args.host
     )
-    
+
     print_summary(results)
