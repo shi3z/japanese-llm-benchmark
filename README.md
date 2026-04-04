@@ -55,9 +55,11 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 
 | Rank | Model | ROUGE-L | Speed | Size | Tier |
 |------|-------|---------|-------|------|------|
-| 🥇 | **qwen3:235b-a22b** | **0.518** | 35 tok/s | 142GB | S+ |
-| 1 | qwen3:30b-a3b | **0.347** | 200 tok/s | 18.6GB | S |
-| 2 | qwen3:8b | **0.333** | 204 tok/s | 5.2GB | S |
+| 🥇 | **Qwopus3.5-9B** | **0.533** | 196 tok/s | 5.4GB | S+ |
+| 🥈 | qwen3:235b-a22b | 0.518 | 35 tok/s | 142GB | S+ |
+| 🆕 | **Bonsai-8B** | 0.400 | 325 tok/s | 1.2GB | A |
+| 1 | qwen3:30b-a3b | 0.347 | 200 tok/s | 18.6GB | S |
+| 2 | qwen3:8b | 0.333 | 204 tok/s | 5.2GB | S |
 | 3 | gemma4:e4b | 0.32* | 109 tok/s | 9.6GB | A |
 | 4 | gemma4:e2b | 0.30* | 157 tok/s | 7.2GB | A |
 | 5 | gemma3:12b | 0.303 | 141 tok/s | 8.1GB | A |
@@ -78,7 +80,36 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 
 ## 定性的評価
 
-### S+ Tier - 最高品質（大規模VRAM環境向け）
+### S+ Tier - 最高品質
+
+#### Qwopus3.5-9B-v3 (NEW!) - RTX 5090 / A100
+- **ROUGE-L**: 0.533 | **Speed**: 196 tok/s (5090) / 108 tok/s (A100) | **Size**: 5.4GB
+
+**生成例**:
+> 大規模言語モデルとAgenticAIは、デジタルツインや自律的行動など新たな応用をもたらす。技術主導から人間性・倫理・市民参加を重視する情報エコシステムへ。印刷革命に続くデジタル革命で、市民が情報の創造・検証に参加する双方向性が重要。AI倫理や多様な価値観の対話、学際的視点による新たなルール作りが、未来社会の構築に不可欠だ。
+
+**評価**:
+- ✅ **ROUGE-L 0.533で最高精度**（qwen3:235bを超える！）
+- ✅ 詳細なThinking過程を出力（英語）
+- ✅ 5.4GBで8GB VRAMでも動作可能
+- ✅ RTX 5090で196 tok/sの高速推論
+- ⚠️ llama.cpp必須（Ollamaは非対応）
+
+**動作方法**:
+```bash
+# llama.cpp をビルド
+git clone https://github.com/ggml-org/llama.cpp && cd llama.cpp
+cmake -B build -DGGML_CUDA=ON && cmake --build build --target llama-cli -j8
+
+# モデルをダウンロード
+curl -L -o Qwen3.5-9B.Q4_K_M.gguf \
+  "https://huggingface.co/Jackrong/Qwopus3.5-9B-v3-GGUF/resolve/main/Qwen3.5-9B.Q4_K_M.gguf"
+
+# 推論実行
+./build/bin/llama-cli -m Qwen3.5-9B.Q4_K_M.gguf -p "要約してください..." -ngl 99
+```
+
+---
 
 #### qwen3:235b-a22b (MoE) - A100 80GB x8
 - **ROUGE-L**: 0.518 | **Speed**: 35 tok/s | **Size**: 142GB
@@ -87,7 +118,7 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 > 要約: LLMの進化で、ユーザーに最適化されたパーソナルAIが加速。汎用モデルから目的・ユーザー別モデルへ移行し、AgenticAIはメール返信や意思決定を担う。技術戦略では人間性や倫理が重要視され、欧州はプライバシー、北米は市場主導のAI倫理アプローチが対比される。
 
 **評価**:
-- ✅ ROUGE-L 0.518で最高精度
+- ✅ ROUGE-L 0.518で高精度
 - ✅ 詳細なThinking過程を出力
 - ✅ 要約品質が非常に高い
 - ⚠️ 142GB VRAMが必要（8x A100 80GB）
@@ -125,6 +156,34 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 ---
 
 ### A Tier - 高品質（多くの用途で推奨）
+
+#### Bonsai-8B (NEW!) - 1-bit Quantization
+- **ROUGE-L**: 0.400 | **Speed**: 325 tok/s | **Size**: 1.16GB
+
+**生成例**:
+> 大規模言語モデルは、技術主導型の未来戦略に人間性や倫理が不可欠であると認識されています。AgenticAIは、長期間の対話を通じてユーザーの好みを学習し、代わりに行動する可能性があります。情報エコシステムでは、多様な視点や文化が融合し、市民の参加が促進されています。
+
+**評価**:
+- ✅ **1-bit量子化で1.16GB**（超軽量！）
+- ✅ 325 tok/sの超高速推論
+- ✅ 8Bパラメータの品質を維持
+- ⚠️ PrismML版llama.cpp必須
+
+**動作方法**:
+```bash
+# PrismML版 llama.cpp をビルド（1-bit対応）
+git clone https://github.com/PrismML-Eng/llama.cpp && cd llama.cpp
+cmake -B build -DGGML_CUDA=ON && cmake --build build -j8
+
+# モデルをダウンロード
+curl -L -o Bonsai-8B.gguf \
+  "https://huggingface.co/prism-ml/Bonsai-8B-gguf/resolve/main/Bonsai-8B.gguf"
+
+# 推論実行
+./build/bin/llama-cli -m Bonsai-8B.gguf -p "..." -ngl 99 --temp 0.5
+```
+
+---
 
 #### gemma3:12b
 - **ROUGE-L**: 0.303 | **Speed**: 141 tok/s | **Size**: 8.1GB
@@ -241,14 +300,16 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 
 | Rank | Model | ROUGE-L | Speed | Size | 評価 |
 |------|-------|---------|-------|------|------|
-| 1 | **qwen3:8b** | **0.333** | 204 tok/s | 5.2GB | 最高性能！ |
-| 2 | **gemma4:e2b** | 0.30* | 157 tok/s | 7.2GB | 🆕 Gemma 4! |
-| 3 | **gemma4:e4b** | 0.32* | 109 tok/s | 9.6GB | 🆕 要Q4量子化 |
-| 2 | qwen3-128k | 0.302 | 203 tok/s | 5.2GB | 128K対応 |
-| 3 | ELYZA 8B | 0.258 | 241 tok/s | 4.9GB | 日本語特化 |
-| 4 | llama3.2:3b | 0.246 | 427 tok/s | 2.0GB | 軽量・高速 |
-| 5 | gemma3:4b | 0.243 | 286 tok/s | 3.3GB | バランス型 |
-| 6 | mistral:7b | 0.196 | 244 tok/s | 4.4GB | 注意 |
+| 🥇 | **Qwopus3.5-9B** | **0.533** | 196 tok/s | 5.4GB | 🆕 最高精度！ |
+| 🥈 | **Bonsai-8B** | 0.400 | 325 tok/s | 1.2GB | 🆕 超軽量・高速 |
+| 1 | qwen3:8b | 0.333 | 204 tok/s | 5.2GB | Ollama対応 |
+| 2 | gemma4:e2b | 0.30* | 157 tok/s | 7.2GB | Gemma 4 |
+| 3 | gemma4:e4b | 0.32* | 109 tok/s | 9.6GB | 要Q4量子化 |
+| 4 | qwen3-128k | 0.302 | 203 tok/s | 5.2GB | 128K対応 |
+| 5 | ELYZA 8B | 0.258 | 241 tok/s | 4.9GB | 日本語特化 |
+| 6 | llama3.2:3b | 0.246 | 427 tok/s | 2.0GB | 軽量・高速 |
+| 7 | gemma3:4b | 0.243 | 286 tok/s | 3.3GB | バランス型 |
+| 8 | mistral:7b | 0.196 | 244 tok/s | 4.4GB | 注意 |
 
 ### qwen3:8b サンプル出力
 
@@ -277,7 +338,7 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 | キーワード抽出 | 5/5 | 重要用語を的確に選択 |
 | **総合** | **4.5/5** | 8GBモデルとしては卓越 |
 
-**結論**: RTX 5060 8GBでは **qwen3:8b** が最適。ROUGE-L 0.333は30Bクラスのqwen3:30b-a3b (0.347)に迫る性能を5.2GBで実現。
+**結論**: RTX 5060 8GBでは **Qwopus3.5-9B** が最適（ROUGE-L 0.533、5.4GB）。llama.cppが必要だが、235Bモデルを超える精度を実現。Ollamaで使いたい場合は **qwen3:8b**（ROUGE-L 0.333）が次点。超軽量を求めるなら **Bonsai-8B**（1.2GB、325 tok/s）が最速。
 
 ---
 
@@ -285,12 +346,13 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 
 | 評価軸 | 最優秀 | コメント |
 |--------|--------|----------|
-| 内容の正確性 | qwen3:30b-a3b | 主要論点を漏れなく抽出 |
+| 内容の正確性 | **Qwopus3.5-9B** | ROUGE-L 0.533で最高精度 |
 | 簡潔さ | qwen3:8b / qwen3:14b | 100文字以下で要点を凝縮 |
 | 日本語の自然さ | gemma3:12b | 文法的に最も自然 |
-| 速度と品質のバランス | mistral-small | 96 tok/sかつROUGE-L 0.285 |
-| コストパフォーマンス | qwen3:8b | 5.2GBで高品質 |
-| 8GB VRAM最適 | qwen3:8b | 30Bに迫る性能を軽量で実現 |
+| 速度と品質のバランス | **Bonsai-8B** | 325 tok/s、ROUGE-L 0.400、1.2GB |
+| コストパフォーマンス | **Bonsai-8B** | 1.2GBで8Bパラメータ相当の品質 |
+| 8GB VRAM最適 | **Qwopus3.5-9B** | 5.4GBで235Bを超える精度 |
+| Ollama対応 | qwen3:8b | Ollamaで使える最高品質 |
 
 ---
 
@@ -566,12 +628,17 @@ A: {"keywords": ["CNN", "RNN", "違い"]}
 
 ---
 
-## 未対応モデル
+## 特殊環境が必要なモデル
 
 ### Qwopus3.5-9B-v3-GGUF
-- **状態**: Ollama 0.13.1で未対応
-- **原因**: `qwen35`アーキテクチャが未サポート
-- **対策**: 将来のOllamaアップデートを待つ
+- **状態**: ✅ llama.cpp で動作確認済み
+- **注意**: Ollama 0.20.0でも`qwen35`アーキテクチャ未サポート
+- **対策**: llama.cpp を使用（上記S+ Tierセクション参照）
+
+### Bonsai-8B-gguf
+- **状態**: ✅ PrismML版llama.cppで動作確認済み
+- **注意**: 1-bit量子化(Q1_0)は標準llama.cppでは非対応
+- **対策**: PrismML版llama.cppを使用（上記A Tierセクション参照）
 
 ---
 
