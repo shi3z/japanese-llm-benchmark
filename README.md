@@ -573,34 +573,47 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 
 [Fujitsu OneCompression](https://github.com/FujitsuResearch/OneCompression)による量子化技術のテスト結果。
 
-### テスト環境
-- **Hardware**: NVIDIA A100 80GB PCIe
-- **Model**: Qwen/Qwen2.5-0.5B-Instruct
-- **Quantization**: AutoBit + QEP (4bit target)
-- **Calibration**: C4 dataset, 512 samples
-
-### 量子化結果
+### Qwopus3.5-9B-v3 量子化結果 (NEW!)
 
 | 項目 | 値 |
 |------|-----|
-| 量子化時間 | 88.69秒 (168レイヤー) |
-| 元モデルサイズ | ~938MB (FP16) |
-| 量子化後サイズ | 449MB (4bit mixed) |
-| 圧縮率 | 約52% |
+| **Hardware** | NVIDIA A100 80GB PCIe |
+| **Model** | Jackrong/Qwopus3.5-9B-v3 |
+| **量子化時間** | 5544秒 (92分) |
+| **元モデルサイズ** | ~18GB (bf16) |
+| **量子化後サイズ** | 7.2GB (mixed_gptq) |
+| **圧縮率** | 60% 削減 |
+| **Target bpw** | 4.0 raw → 4.16 effective |
+| **Layers** | 248 modules |
 
-### 推論テスト結果
+**混合精度ビット割り当て (ILP最適化)**:
+- 重要レイヤー（out_proj等）: 8-bit
+- 標準レイヤー（qkv, z等）: 4-bit
+- 冗長性の高いレイヤー（gate_proj, up_proj）: 3-bit
+- ILP solver: SCIP (992変数、48制約)
+
+**課題**:
+- `mixed_gptq`形式は標準transformersでのロードに非対応
+- onecompライブラリの推論ローダーにもキー形式の不整合あり
+- 現時点では推論テスト不可（将来のバージョンアップに期待）
+
+### Qwen2.5-0.5B-Instruct 量子化結果 (参考)
+
+| 項目 | 値 |
+|------|-----|
+| **量子化時間** | 88.69秒 (168レイヤー) |
+| **元モデルサイズ** | ~938MB (FP16) |
+| **量子化後サイズ** | 449MB (4bit mixed) |
+| **圧縮率** | 約52% |
+
+**推論テスト結果**:
 
 | Model | 速度 | 品質 | 備考 |
 |-------|------|------|------|
 | Original FP16 | 50.7 tok/s | ✅ 正常 | ベースライン |
 | OneCompression 4bit | 4.9 tok/s | ❌ 不正出力 | 互換性問題 |
 
-**課題**:
-- OneCompressionの`mixed_gptq`形式は標準transformersでのロードに問題あり
-- vLLMプラグインもtokenizer互換性問題で動作せず
-- 現時点ではvLLM v0.18.1との完全な互換性なし
-
-**結論**: OneCompressionは量子化自体は成功するが、推論環境との互換性に課題あり。将来のバージョンアップに期待。
+**結論**: OneCompressionは量子化自体は成功し、ILP最適化による混合精度で高い圧縮率を実現。ただし推論環境との互換性に課題あり。GGUFへの変換やvLLMプラグインの改善に期待。
 
 ---
 
