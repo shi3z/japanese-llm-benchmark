@@ -57,6 +57,7 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 |------|-------|---------|-------|------|------|
 | 🥇 | **Qwopus3.5-9B** ⚠️ | **0.533** | 196 tok/s | 5.4GB | S+ |
 | 🥈 | qwen3:235b-a22b | 0.518 | 35 tok/s | 142GB | S+ |
+| 🆕 | **Qwen3.5-9B** (公式) | TBD | 59.5 tok/s | 9.5GB | S+ |
 | 🆕 | **Qwen3.5-9B-Neo** | TBD | 158 tok/s | 6.5GB | S+ |
 | 🆕 | **Bonsai-8B** | 0.400 | 325 tok/s | 1.2GB | A |
 | 1 | qwen3:30b-a3b | 0.347 | 200 tok/s | 18.6GB | S |
@@ -155,6 +156,35 @@ curl -L -o Qwen3.5-9B-Neo.Q5_K_M.gguf \
 
 # 推論実行
 ./build/bin/llama-cli -m Qwen3.5-9B-Neo.Q5_K_M.gguf -p "要約してください..." -ngl 99
+```
+
+---
+
+#### Qwen3.5-9B (公式モデル) - V100 32GB
+- **ROUGE-L**: TBD | **Speed**: 59.5 tok/s | **Size**: 9.5GB (Q8_0)
+
+**生成例**:
+> デジタル技術、特に AI の急速な発展は社会に大きな変化をもたらしています。自然言語処理や画像認識など、人間に匹敵する性能を発揮するようになり、医療や交通など多方面で恩恵をもたらしています。一方で、プライバシー侵害や雇用問題、AI 判断の不透明性といった課題も浮上しています。今後、これらの技術を賢明に活用し、負の影響を最小化しながら持続可能な社会を築くことが求められています。
+
+**Thinking過程（英語）**:
+> The user wants me to summarize the given Japanese text into approximately 200 characters. Let me first analyze the original text: 1. Digital technology development bringing big changes... 2. AI progress is remarkable... 3. This innovation has both positive and negative aspects...
+
+**評価**:
+- ✅ 公式Qwen3.5-9Bモデル（ライセンス面でクリーン）
+- ✅ 英語でのThinking過程を出力（構造的な分析）
+- ✅ 要約品質が高い（原文の要点を的確に抽出）
+- ✅ 文章が自然で読みやすい
+- ⚠️ Q8_0で9.5GB（16GB以上のVRAM推奨）
+- ⚠️ V100で59.5 tok/s（RTX 5090ならより高速）
+
+**動作方法**:
+```bash
+# HuggingFaceからGGUFをダウンロード
+curl -L -o Qwen3.5-9B.Q8_0.gguf \
+  "https://huggingface.co/lmstudio-community/Qwen3.5-9B-GGUF/resolve/main/Qwen3.5-9B-Q8_0.gguf"
+
+# 推論実行
+./build/bin/llama-cli -m Qwen3.5-9B.Q8_0.gguf -p "要約してください..." -ngl 99
 ```
 
 ---
