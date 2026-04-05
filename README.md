@@ -630,11 +630,114 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 
 ---
 
+## VLM (Vision Language Model) ベンチマーク
+
+FLUX.2-klein-9Bで生成した画像をVLMで日本語説明するベンチマーク。
+
+### 画像生成 (FLUX.2-klein-9B on RTX 5090)
+
+| 項目 | 値 |
+|------|-----|
+| **Model** | black-forest-labs/FLUX.2-klein-9B |
+| **Hardware** | NVIDIA GeForce RTX 5090 (33.7GB) |
+| **Resolution** | 1024 x 1024 |
+| **Inference Steps** | 4 |
+| **Average Time** | 11-14s/image |
+
+### VLM日本語説明テスト (Gemma3:12b)
+
+| Image | Theme | VLM Time | Tokens | Success |
+|-------|-------|----------|--------|---------|
+| 1 | Japanese Temple | 5.34s | 500 | ✅ |
+| 2 | Cyberpunk Tokyo | 5.69s | 392 | ✅ |
+| 3 | Coral Reef | 5.77s | 487 | ✅ |
+| 4 | Victorian London | 7.82s | 407 | ✅ |
+| 5 | Tea Ceremony | 8.32s | 429 | ✅ |
+
+**Gemma3:12b 出力例 (Japanese Temple)**:
+> **1. 画像の主題や中心的な要素**
+> この画像は、日本の伝統的な庭園（日本庭園）とその背景にある建造物を中心に捉えたものです。特に、以下の要素が目立ちます。
+> * **石灯籠:** 庭園の随所に配置された石灯籠が、光の温かさを放ち、奥行きと静寂を演出しています。
+> * **砂紋:** 白砂で丁寧に整えられた砂紋（砂の模様）は、庭園の重要な要素であり、水庭を表現しています。
+> * **建物の屋根:** 日本建築特有の曲線的な屋根は、伝統的な美しさを象徴しています。
+
+### VLMモデル推奨ランキング (日本語対応)
+
+| Rank | Model | Japanese Support | VRAM | 推奨用途 |
+|------|-------|------------------|------|----------|
+| 1 | **Qwen3-VL** | Excellent (33言語) | 4-48GB+ | 日本語説明 |
+| 2 | **Qwen2.5-VL** | Excellent (29言語) | 4-48GB+ | 汎用マルチリンガル |
+| 3 | **MiniCPM-V** | Very Good (30言語) | 4-8GB | 効率的推論 |
+| 4 | **Gemma 3** | Good (140言語) | 2.6-16GB | 軽量マルチリンガル |
+| 5 | LLaVA | Limited | 8-24GB | 英語+翻訳 |
+| ❌ | Llama 3.2 Vision | Poor (英語のみ) | 8-64GB | **非推奨** |
+
+**推奨コマンド**:
+```bash
+# 日本語画像説明に最適
+ollama run qwen3-vl:8b
+
+# 軽量環境向け
+ollama run gemma3:4b
+
+# 高品質環境向け
+ollama run qwen3-vl:32b
+```
+
+---
+
 ## OneCompression 量子化テスト
 
 [Fujitsu OneCompression](https://github.com/FujitsuResearch/OneCompression)による量子化技術のテスト結果。
 
-### Qwopus3.5-9B-v3 量子化結果 (NEW!)
+### Qwen3-1.7B Mixed-GPTQ 量子化結果 (RTX 5090) - NEW!
+
+| 項目 | 値 |
+|------|-----|
+| **Hardware** | NVIDIA GeForce RTX 5090 (33.7GB) |
+| **Model** | Qwen/Qwen3-1.7B |
+| **Quantization** | GPTQ 4-bit (groupsize=128) |
+| **QEP** | Enabled |
+| **Output Size** | 1.3GB |
+| **Status** | ✅ SUCCESS |
+
+**セットアップ手順 (Python 3.10対応)**:
+```bash
+# Clone and install
+git clone https://github.com/FujitsuResearch/OneCompression.git ~/OneCompression
+cd ~/OneCompression
+
+# Python 3.10互換性パッチ
+sed -i 's/requires-python = ">=3.12, <3.14"/requires-python = ">=3.10"/' pyproject.toml
+pip install strenum
+
+# StrEnum import patch (_autobit.py)
+# try:
+#     from enum import StrEnum
+# except ImportError:
+#     from strenum import StrEnum
+
+pip install -e .
+pip install lm-eval ortools
+```
+
+**テストコード**:
+```python
+from onecomp import Runner, ModelConfig
+from onecomp.quantizer.gptq import GPTQ
+
+model_config = ModelConfig(model_id="Qwen/Qwen3-1.7B")
+quantizer = GPTQ(wbits=4, groupsize=128)
+runner = Runner(model_config=model_config, quantizer=quantizer, qep=True)
+runner.run()
+runner.save_quantized_model("~/mixed_gptq_output")
+```
+
+**結果**: gemliteが自動的に`5090.json`設定をロードし、RTX 5090で正常動作。
+
+---
+
+### Qwopus3.5-9B-v3 量子化結果
 
 | 項目 | 値 |
 |------|-----|
