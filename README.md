@@ -2,6 +2,20 @@
 
 A benchmark tool for evaluating Japanese language capabilities of various LLMs.
 
+## 目次 (Table of Contents)
+
+- [Benchmark Results](#benchmark-results) - 総合ランキング
+- [定性的評価](#定性的評価) - S+/S/A/B/C/D Tier詳細
+- [RTX 5060 (8GB) ベンチマーク](#rtx-5060-8gb-vram-ベンチマーク結果)
+- [キーワード抽出ベンチマーク](#キーワード抽出ベンチマーク)
+- [Gemma 4 ベンチマーク](#gemma-4-ベンチマーク結果-2026年4月リリース)
+- [VLM (Vision Language Model) ベンチマーク](#vlm-vision-language-model-ベンチマーク)
+- [OneCompression 量子化テスト](#onecompression-量子化テスト)
+- [Quansloth TurboQuant コンテキスト拡張](#quansloth-turboquant-コンテキスト拡張テスト) - NEW!
+- [大規模モデル（A100）テスト](#大規模モデルa100テスト)
+
+---
+
 ## Features
 
 - **ROUGE Score Evaluation**: Measures summarization quality using ROUGE-1, ROUGE-2, and ROUGE-L
@@ -778,6 +792,82 @@ runner.save_quantized_model("~/mixed_gptq_output")
 | OneCompression 4bit | 4.9 tok/s | ❌ 不正出力 | 互換性問題 |
 
 **結論**: OneCompressionは量子化自体は成功し、ILP最適化による混合精度で高い圧縮率を実現。ただし推論環境との互換性に課題あり。GGUFへの変換やvLLMプラグインの改善に期待。
+
+---
+
+## Quansloth TurboQuant コンテキスト拡張テスト
+
+[Quansloth](https://github.com/PacifAIst/Quansloth) は Google TurboQuant 技術を実装した KV キャッシュ圧縮ツール。RTX 5090 で検証。
+
+### TurboQuant 概要
+
+- **技術**: Google TurboQuant ([ICLR 2026](https://research.google/blog/turboquant-redefining-ai-efficiency-with-extreme-compression/))
+- **圧縮方式**: KV キャッシュを FP16 → 4bit (turbo3) に圧縮
+- **効果**: VRAM 使用量を最大 75-80% 削減
+
+### Llama 3.2 3B コンテキスト拡張結果 (RTX 5090)
+
+| Context | KV Cache (TurboQuant) | KV Cache (FP16) | 圧縮率 |
+|---------|----------------------|-----------------|--------|
+| 32K | 700 MiB | ~3.5 GB | **5x** |
+| 64K | 1.4 GB | ~7 GB | **5x** |
+| 128K | 2.8 GB | ~14 GB | **5x** |
+
+### Qwen3-8B 比較テスト (RTX 5090)
+
+| Context | Mode | KV Cache | Total VRAM | RTX 5060 (8GB) |
+|---------|------|----------|------------|----------------|
+| 32K | FP16 | 4.5 GB | **10.1 GB** | ❌ |
+| 32K | TurboQuant turbo3 | 0.9 GB | **6.4 GB** | ✅ |
+| 40K (max) | FP16 | 5.8 GB | **11.3 GB** | ❌ |
+| 40K (max) | TurboQuant turbo3 | 1.1 GB | **6.6 GB** | ✅ |
+
+### 推論速度比較 (Qwen3-8B @ 32K context)
+
+| Mode | Speed (tok/s) | VRAM | 速度低下 |
+|------|---------------|------|----------|
+| FP16 | **220** tok/s | 10.1 GB | - |
+| TurboQuant turbo3 | **188** tok/s | 6.4 GB | -15% |
+
+### 結論
+
+| 項目 | 値 |
+|-----|-----|
+| KV キャッシュ圧縮率 | **5.1x** |
+| VRAM 削減率 | **42%** (11.3GB → 6.6GB) |
+| 速度低下 | **~15%** |
+| トレードオフ | 良好 |
+
+**RTX 5060 (8GB) での効果**: TurboQuant により Qwen3-8B の 40K コンテキストが 11.3GB → 6.6GB に圧縮され、8GB GPU でも動作可能に。
+
+### セットアップ手順
+
+```bash
+# 1. llama-cpp-turboquant をクローン・ビルド
+git clone -b feature/turboquant-kv-cache https://github.com/TheTom/llama-cpp-turboquant.git
+cd llama-cpp-turboquant
+cmake -B build -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j4
+
+# 2. GGUF モデルをダウンロード
+mkdir -p models
+wget -O models/Qwen3-8B-Q4_K_M.gguf \
+  "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q4_K_M.gguf"
+
+# 3. TurboQuant サーバー起動 (40K context)
+./build/bin/llama-server -m models/Qwen3-8B-Q4_K_M.gguf \
+  -ctk turbo3 -ctv turbo3 -c 40960 -ngl 99 --host 0.0.0.0 --port 8080
+
+# 4. API テスト
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "qwen3", "messages": [{"role": "user", "content": "Hello"}]}'
+```
+
+**Sources**:
+- [Quansloth GitHub](https://github.com/PacifAIst/Quansloth)
+- [TurboQuant Research](https://arxiv.org/abs/2504.19874)
+- [llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant)
 
 ---
 
