@@ -73,6 +73,7 @@ RTX 5090 (32GB) / RTX 5060 (8GB) - 7000文字長文テキスト - 定性的評�
 | 🥇 | **Qwopus3.5-9B** ⚠️ | **0.533** | 196 tok/s | 5.4GB | S+ |
 | 🥈 | qwen3:235b-a22b | 0.518 | 35 tok/s | 142GB | S+ |
 | 🆕 | **Qwen3.5-9B** (公式) | 0.492 | 197 tok/s (5090) | 5.4GB | S+ |
+| 🆕 | **gemma4-31B-Opus** ⚠️ | 0.401 | 27.8 tok/s | 18.7GB | A |
 | 🆕 | **OmniCoder-9B** ⚠️ | 0.382 | 195 tok/s | 5.4GB | A |
 | 🆕 | **Bonsai-8B** | 0.400 | 325 tok/s | 1.2GB | A |
 | 1 | qwen3:30b-a3b | 0.347 | 200 tok/s | 18.6GB | S |
@@ -205,6 +206,35 @@ curl -L -o Qwen3.5-9B.Q8_0.gguf \
 ---
 
 ### A Tier - 高品質（多くの用途で推奨）
+
+#### gemma4-31B-Opus (NEW!) - A100 80GB
+- **ROUGE-L**: 0.401 | **Speed**: 27.8 tok/s | **Size**: 18.7GB (Q4_K_M)
+
+> ⚠️ **ライセンス上の懸念**: このモデルは「Claude Opus 4.6の推論トレース」で訓練されたと明記されています。Qwopusと同様のライセンスリスクにご注意ください。
+
+**生成例 (Sample 0)**:
+> 大規模言語モデルの進化により、個人の思考パターンを学習したAIが業務を代行するデジタルツインの実現が期待されています。一方で、情報の信頼性や透明性、プライバシー保護といった倫理的課題も浮き彫りとなっています。欧米とアジアで規制アプローチが異なる中、国際的な標準策定には多角的な協議が不可欠です。
+
+**評価**:
+- ✅ Gemma 4ベースの31Bパラメータモデル
+- ✅ 高品質な日本語要約を生成
+- ✅ 詳細な内容を適切な長さでまとめる
+- ⚠️ 18.7GB VRAMが必要（A100推奨）
+- ⚠️ 速度は27.8 tok/sと低め
+- ⚠️ **Claude Opus 4.6蒸留によるライセンスリスク**
+
+**動作方法**:
+```bash
+# モデルをダウンロード (18.7GB)
+wget -O gemma4-31B-opus.q4_k_m.gguf \
+  "https://huggingface.co/TeichAI/gemma-4-31B-it-Claude-Opus-Distill-GGUF/resolve/main/gemma-4-31B-it-Claude-Opus-Distill.q4_k_m.gguf"
+
+# llama-server で起動
+./build/bin/llama-server -m gemma4-31B-opus.q4_k_m.gguf \
+  -c 32768 -ngl 99 --host 0.0.0.0 --port 8080
+```
+
+---
 
 #### Bonsai-8B (NEW!) - 1-bit Quantization
 - **ROUGE-L**: 0.400 | **Speed**: 325 tok/s | **Size**: 1.16GB
