@@ -12,7 +12,8 @@ A benchmark tool for evaluating Japanese language capabilities of various LLMs.
 - [VLM (Vision Language Model) ベンチマーク](#vlm-vision-language-model-ベンチマーク)
 - [OneCompression 量子化テスト](#onecompression-量子化テスト)
 - [Quansloth TurboQuant コンテキスト拡張](#quansloth-turboquant-コンテキスト拡張テスト)
-- [Needle-in-Haystack ベンチマーク](#needle-in-haystack-ベンチマーク) - NEW!
+- [Needle-in-Haystack ベンチマーク](#needle-in-haystack-ベンチマーク)
+- [RotorQuant KVキャッシュ圧縮ベンチマーク](#rotorquant-kvキャッシュ圧縮ベンチマーク) - NEW!
 - [大規模モデル（A100）テスト](#大規模モデルa100テスト)
 
 ---
@@ -1222,6 +1223,58 @@ A: {"keywords": ["CNN", "RNN", "違い"]}
 - ✅ キーワード抽出精度は高い
 - ⚠️ 速度は中程度（35 tok/s）
 - ⚠️ 大規模VRAMが必要（142GB）
+
+---
+
+## RotorQuant KVキャッシュ圧縮ベンチマーク
+
+[RotorQuant](https://github.com/scrya-com/rotorquant) のKVキャッシュ圧縮手法（PlanarQuant / IsoQuant）がQwen3.5-9B Q4_K_Mの日本語要約性能に与える影響を検証。[llama.cpp rotorquant fork](https://github.com/johndpope/llama-cpp-turboquant/tree/feature/planarquant-kv-cache)を使用。
+
+### llama-bench 速度測定
+
+| Config (K/V) | RTX 5090 Prefill | RTX 5090 Decode | A100 Prefill | A100 Decode |
+|---|---:|---:|---:|---:|
+| **f16 / f16** (baseline) | 10,548 tok/s | 200.5 tok/s | 3,679 tok/s | 117.1 tok/s |
+| **planar3 / planar3** | 9,315 (-11.7%) | 191.1 (-4.7%) | 3,320 (-9.8%) | 107.9 (-7.8%) |
+| **iso3 / iso3** | 8,971 (-15.0%) | 190.0 (-5.2%) | 3,111 (-15.4%) | 113.4 (-3.2%) |
+| **planar3 / f16** | 10,490 (-0.6%) | **202.0 (+0.7%)** | 3,851 (+4.7%) | 115.1 (-1.7%) |
+
+### 日本語要約ベンチマーク（Chat API、Qwen3.5-9B、5サンプル）
+
+#### RTX 5090
+
+| Config | 正常出力(~200字) | 異常出力(3K字超) | Avg ROUGE-L (正常のみ) | Avg tok/s |
+|---|---:|---:|---:|---:|
+| **f16/f16** | 4/5 | 1/5 | **0.298** | 180.2 |
+| **planar3/planar3** | **1/5** | **4/5** | 0.282 | 148.0 |
+| **iso3/iso3** | **5/5** | **0/5** | **0.280** | 152.4 |
+| **planar3/f16** | 2/5 | 3/5 | 0.291 | 179.0 |
+
+#### A100 80GB（タイムアウト除外）
+
+| Config | 有効N | Avg ROUGE-L | Avg tok/s |
+|---|---:|---:|---:|
+| **f16/f16** | 3/5 | 0.259 | 87.6 |
+| **planar3/planar3** | 4/5 | **0.312** | 68.3 |
+| **iso3/iso3** | 4/5 | **0.307** | 67.0 |
+| **planar3/f16** | 3/5 | **0.329** | 100.2 |
+
+### 重大な発見
+
+- **planar3はQwen3.5-9Bで指示追従を破壊する（RTX 5090）**: planar3/planar3で5サンプル中4サンプルが出力制御不能（3,800～11,346文字に膨張）。K側のplanar3圧縮がモデルの「200文字で要約」という指示追従能力に影響
+- **iso3は安定**: iso3/iso3は全サンプルで正常な出力長（197～237文字）を維持し、ROUGE-Lも0.247～0.319で安定
+- **READMEの「28%高速」はQwen3.5で再現されない**: RTX 5090でもdecodeは4.7～5.2%低下。元のベンチマークはLlama 3.1 8Bを使用しており、モデル依存の結果
+- **VRAM削減は有効**: 3bit圧縮による10.3xのKVキャッシュ圧縮は実現される
+
+### 結論
+
+| 手法 | 評価 | コメント |
+|---|---|---|
+| **iso3/iso3** | ✅ 実用可能 | 品質維持+10.3x圧縮。速度は5%低下 |
+| **planar3/planar3** | ❌ Qwen3.5で使用不可 | 指示追従が壊れ出力が暴走する |
+| **planar3/f16** | ⚠️ 不安定 | 速度はほぼ維持だが品質不安定 |
+
+RotorQuantの手法のうち、**IsoQuant (iso3) のみがQwen3.5-9Bの日本語タスクで実用的**。PlanarQuant (planar3) はLlama系では有効だがQwen系では深刻な品質劣化を引き起こす。
 
 ---
 
