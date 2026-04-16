@@ -265,6 +265,42 @@ curl -L -o Bonsai-8B.gguf \
 
 ---
 
+#### Ternary-Bonsai-8B MLX 2-bit (NEW!) - Apple Silicon
+- **ROUGE-L**: 0.259 | **Speed**: 56.9 tok/s | **Platform**: Apple M3 Ultra 512GB (MLX)
+
+[prism-ml/Ternary-Bonsai-8B-mlx-2bit](https://huggingface.co/prism-ml/Ternary-Bonsai-8B-mlx-2bit) をMLXで動作テスト。
+
+| 項目 | Ternary-Bonsai MLX 2-bit | Bonsai-8B GGUF 1-bit |
+|---|---|---|
+| Platform | M3 Ultra (MLX) | RTX 5090 (llama.cpp) |
+| ROUGE-L | 0.259 | **0.400** |
+| ROUGE-1 | 0.563 | **0.650** |
+| ROUGE-2 | 0.268 | **0.359** |
+| Speed | 56.9 tok/s | **325 tok/s** |
+| Size | ~2GB | 1.16GB |
+| 出力長安定性 | 210-387字 (やや長め) | ~200字 (安定) |
+
+**評価**:
+- ⚠️ GGUF 1-bit版(ROUGE-L 0.400)より**品質が大幅に低下**（ROUGE-L 0.259、-35%）
+- ⚠️ M3 Ultra上で56.9 tok/s（RTX 5090のGGUF版325 tok/sの1/6）
+- ⚠️ 出力がやや冗長になる傾向（平均251文字、最大387文字）
+- ✅ Apple Silicon環境で動作可能
+- ✅ UV + mlx-lm で簡単にセットアップ可能
+
+**動作方法**:
+```bash
+uv init && uv add mlx mlx-lm
+uv run python -c "
+from mlx_lm import load, generate
+model, tokenizer = load('prism-ml/Ternary-Bonsai-8B-mlx-2bit')
+print(generate(model, tokenizer, prompt='日本の首都は？', max_tokens=256))
+"
+```
+
+**結論**: Apple Silicon環境でBonsaiを使いたい場合の選択肢だが、品質・速度ともにGGUF 1-bit版に大きく劣る。MLX 2-bit量子化はGGUF 1-bitほど効率的ではない。
+
+---
+
 #### OmniCoder-9B (NEW!) - RTX 5090
 - **ROUGE-L**: 0.382 | **Speed**: 195 tok/s | **Size**: 5.4GB (Q4_K_M)
 
