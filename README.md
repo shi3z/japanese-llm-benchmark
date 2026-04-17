@@ -13,7 +13,8 @@ A benchmark tool for evaluating Japanese language capabilities of various LLMs.
 - [OneCompression 量子化テスト](#onecompression-量子化テスト)
 - [Quansloth TurboQuant コンテキスト拡張](#quansloth-turboquant-コンテキスト拡張テスト)
 - [Needle-in-Haystack ベンチマーク](#needle-in-haystack-ベンチマーク)
-- [RotorQuant KVキャッシュ圧縮ベンチマーク](#rotorquant-kvキャッシュ圧縮ベンチマーク) - NEW!
+- [RotorQuant KVキャッシュ圧縮ベンチマーク](#rotorquant-kvキャッシュ圧縮ベンチマーク)
+- [コーディングベンチマーク](#コーディングベンチマーク-reactチャットアプリ生成) - NEW!
 - [大規模モデル（A100）テスト](#大規模モデルa100テスト)
 
 ---
@@ -1350,6 +1351,49 @@ A: {"keywords": ["CNN", "RNN", "違い"]}
 | **planar3/f16** | ⚠️ 不安定 | 速度はほぼ維持だが品質不安定 |
 
 RotorQuantの手法のうち、**IsoQuant (iso3) のみがQwen3.5-9Bの日本語タスクで実用的**。PlanarQuant (planar3) はLlama系では有効だがQwen系では深刻な品質劣化を引き起こす。
+
+---
+
+## コーディングベンチマーク: Reactチャットアプリ生成
+
+LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャットアプリ」を1プロンプトで生成させ、Docker内でビルド→Playwrightでe2eテスト→スクリーンショット撮影→デザイン評価を全自動で行うベンチマーク。
+
+### 採点基準（100点満点）
+
+| 項目 | 点数 | 判定方法 |
+|---|---|---|
+| ビルド成功 | 15 | npm install && build 成功 |
+| サーバー起動 | 10 | localhost:3000 に応答 |
+| ログイン/サインアップ | 15 | Playwright: アカウント作成→ログイン |
+| フレンドフォロー/解除 | 15 | Playwright: フォロー→確認→解除 |
+| DM送受信 | 15 | Playwright: メッセージ送信→相手側で確認 |
+| リアルタイム更新 | 10 | Playwright: ポーリング/WSで自動表示 |
+| デザイン品質 | 20 | Claude Vision: スクショを5段階×5観点で評価 |
+
+エラー発生時はエラーメッセージをLLMにフィードバックし、最大10回リトライ可能。リトライ回数も性能指標として記録。
+
+### 結果
+
+| Model | 生成時間 | リトライ | Build | Login | Friend | DM | RT | 機能 | TOTAL |
+|---|---:|---:|---|---|---|---|---|---:|---:|
+| **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | **75/80** | **75/100** |
+| **qwen3.6:35b-a3b** | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
+| gemma4:e4b | 937s | 10 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
+
+### 分析
+
+- **gpt-oss:20b** が最高得点。3回のリトライでエラーを自力修正し、リアルタイム更新含む全機能を実装。UIはシンプルだが完全に動作
+- **qwen3.6:35b-a3b** は一発で動くコードを生成（リトライ0）。デザインは美しい（ダークテーマ）が、UIテストでのログイン後遷移が不完全で-5点
+- **gemma4:e4b** はbetter-sqlite3のネイティブビルド問題を10回リトライしても解決できず全滅
+
+### 使い方
+
+```bash
+python coding_benchmark.py --models qwen3:8b qwen3.6:35b-a3b \
+  --output coding_benchmark_results.json --max-retries 10
+```
+
+スクリーンショットは `coding_benchmark_screenshots/{model}/` に保存される。
 
 ---
 
