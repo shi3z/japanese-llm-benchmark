@@ -21,6 +21,9 @@ server.log
 .vscode/
 *.swp
 
+# Coding benchmark screenshots
+coding_benchmark_screenshots/
+
 # OS
 .DS_Store
 Thumbs.db

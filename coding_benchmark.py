@@ -1,0 +1,467 @@
+#!/usr/bin/env python3
+"""
+LLM Coding Benchmark - React Chat App Generation
+Tests whether LLMs can build a working React chat application with
+login, friend follow, and direct messaging features.
+
+Usage:
+    python coding_benchmark.py --models qwen3:8b qwen3.6:35b-a3b \
+        --output coding_benchmark_results.json --host localhost
+"""
+
+import json
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+import time
+from dataclasses import dataclass, asdict, field
+from typing import List, Dict
+import argparse
+import requests
+
+from coding_benchmark_prompt import get_coding_prompt
+from coding_benchmark_evaluate import evaluate_screenshots, visual_score_to_points
+
+DOCKER_IMAGE = 'coding-bench-runner'
+SCREENSHOT_BASE = os.path.join(os.path.dirname(__file__), 'coding_benchmark_screenshots')
+
+
+@dataclass
+class CodingBenchmarkResult:
+    model: str
+    generation_time: float = 0.0
+    tokens_per_second: float = 0.0
+    raw_output_length: int = 0
+    files_generated: int = 0
+    build_success: bool = False
+    server_starts: bool = False
+    test_login: bool = False
+    test_friends: bool = False
+    test_messaging: bool = False
+    test_realtime: bool = False
+    functional_score: float = 0.0
+    visual_scores: Dict = field(default_factory=dict)
+    visual_score: float = 0.0
+    total_score: float = 0.0
+    screenshots: Dict[str, str] = field(default_factory=dict)
+    error_log: str = ''
+
+
+def is_thinking_model(model: str) -> bool:
+    thinking_patterns = ['qwen3', 'qwen3.5', 'qwen3.6', 'deepseek-r1', 'gpt-oss', 'o1']
+    return any(p in model.lower() for p in thinking_patterns)
+
+
+def get_coding_model_options(model: str) -> dict:
+    options = {
+        'temperature': 0.3,
+        'num_predict': 65536,
+        'num_ctx': 131072,
+    }
+    if any(s in model.lower() for s in ['3b', '1b', '0.5b', '0.6b']):
+        options['num_ctx'] = 32768
+        options['num_predict'] = 16384
+    return options
+
+
+def generate_code(model: str, ollama_host: str = 'localhost') -> tuple:
+    """Call LLM to generate the chat app code."""
+    prompt = get_coding_prompt()
+
+    if ':' in ollama_host:
+        api_url = f'http://{ollama_host}/api/generate'
+    else:
+        api_url = f'http://{ollama_host}:11434/api/generate'
+
+    options = get_coding_model_options(model)
+
+    print(f'  Generating code with {model}...')
+    start_time = time.time()
+
+    try:
+        response = requests.post(
+            api_url,
+            json={
+                'model': model,
+                'prompt': prompt,
+                'stream': False,
+                'options': options,
+            },
+            timeout=600,
+        )
+        data = response.json()
+        elapsed = time.time() - start_time
+
+        output = data.get('response', '') or ''
+
+        # Handle thinking models
+        if '<think>' in output and '</think>' in output:
+            output = re.sub(r'<think>.*?</think>', '', output, flags=re.DOTALL)
+        if '</think>' in output:
+            output = output.split('</think>')[-1]
+
+        eval_count = data.get('eval_count', len(output))
+        eval_duration = data.get('eval_duration', elapsed * 1e9) / 1e9
+        tps = eval_count / eval_duration if eval_duration > 0 else 0
+
+        return output.strip(), elapsed, tps
+    except Exception as e:
+        elapsed = time.time() - start_time
+        return f'Error: {str(e)}', elapsed, 0
+
+
+def parse_generated_files(code_text: str) -> Dict[str, str]:
+    """Parse LLM output into file path -> content mapping."""
+    files = {}
+
+    # Pattern 1: === FILE: path ===\n...\n=== END FILE ===
+    pattern1 = re.compile(
+        r'===\s*FILE:\s*(.+?)\s*===\s*\n(.*?)===\s*END\s*FILE\s*===',
+        re.DOTALL
+    )
+    for match in pattern1.finditer(code_text):
+        filepath = match.group(1).strip()
+        content = match.group(2)
+        files[filepath] = content
+
+    if files:
+        return files
+
+    # Pattern 2: ```filename or ```language\n// filename
+    # Look for markdown code blocks with filenames
+    pattern2 = re.compile(
+        r'(?:^|\n)(?:#{1,3}\s+)?[`*]*(\S+\.\w+)[`*]*\s*\n```\w*\n(.*?)```',
+        re.DOTALL
+    )
+    for match in pattern2.finditer(code_text):
+        filepath = match.group(1).strip()
+        content = match.group(2)
+        files[filepath] = content
+
+    if files:
+        return files
+
+    # Pattern 3: Look for individual code blocks with file indicators
+    blocks = re.findall(r'```(?:\w+)?\n(.*?)```', code_text, re.DOTALL)
+    for block in blocks:
+        # Try to detect filename from first comment line
+        first_line = block.strip().split('\n')[0] if block.strip() else ''
+        if '// ' in first_line and '.' in first_line:
+            name = first_line.replace('//', '').strip()
+            files[name] = block
+        elif first_line.startswith('{') and '"name"' in block:
+            files['package.json'] = block
+        elif 'express' in block and 'listen' in block:
+            files['server.js'] = block
+        elif 'createRoot' in block or 'ReactDOM' in block:
+            files['src/main.jsx'] = block
+        elif 'useState' in block and 'App' in block:
+            files['src/App.jsx'] = block
+        elif '<!DOCTYPE' in block or '<html' in block:
+            files['index.html'] = block
+
+    return files
+
+
+def write_files_to_dir(files: Dict[str, str], target_dir: str):
+    """Write parsed files to a directory."""
+    for filepath, content in files.items():
+        # Sanitize path
+        filepath = filepath.lstrip('/')
+        full_path = os.path.join(target_dir, filepath)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+
+def run_docker_test(code_dir: str, model_name: str, timeout: int = 300) -> dict:
+    """Run the Docker container to build, test, and screenshot the app."""
+    safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', model_name)
+    screenshot_dir = os.path.join(SCREENSHOT_BASE, safe_name)
+    os.makedirs(screenshot_dir, exist_ok=True)
+
+    print(f'  Running Docker tests (timeout {timeout}s)...')
+
+    try:
+        result = subprocess.run(
+            [
+                'docker', 'run', '--rm',
+                '-v', f'{code_dir}:/app:rw',
+                '-v', f'{screenshot_dir}:/screenshots:rw',
+                DOCKER_IMAGE,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout + 30,
+        )
+
+        stdout = result.stdout.strip()
+        stderr = result.stderr
+
+        # Try to parse JSON from last line of stdout
+        for line in reversed(stdout.split('\n')):
+            line = line.strip()
+            if line.startswith('{'):
+                try:
+                    return json.loads(line)
+                except json.JSONDecodeError:
+                    pass
+
+        # Try to read results from screenshot dir
+        results_file = os.path.join(screenshot_dir, 'results.json')
+        if os.path.exists(results_file):
+            with open(results_file) as f:
+                return json.load(f)
+
+        return {
+            'build_success': False,
+            'server_starts': False,
+            'error': f'No JSON output. stderr: {stderr[-500:]}'
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            'build_success': False,
+            'server_starts': False,
+            'error': f'Docker container timed out after {timeout}s'
+        }
+    except Exception as e:
+        return {
+            'build_success': False,
+            'server_starts': False,
+            'error': str(e)
+        }
+
+
+def calculate_functional_score(docker_result: dict) -> float:
+    """Calculate functional score (0-80) from Docker test results."""
+    score = 0.0
+
+    # Build success: 15 points
+    if docker_result.get('build_success', False):
+        score += 15
+
+    # Server starts: 10 points
+    if docker_result.get('server_starts', False):
+        score += 10
+
+    # Login test: 15 points
+    login = docker_result.get('test_login', {})
+    if isinstance(login, dict):
+        if login.get('passed', False):
+            score += 15
+            if login.get('uiLogin', False):
+                pass  # Full points already
+            elif login.get('apiLogin', False):
+                score -= 5  # API only, reduce by 5
+    elif login:
+        score += 15
+
+    # Friends test: 15 points
+    friends = docker_result.get('test_friends', {})
+    if isinstance(friends, dict):
+        if friends.get('passed', False):
+            score += 15
+            if not friends.get('uiFollow', False) and friends.get('apiFollow', False):
+                score -= 5
+    elif friends:
+        score += 15
+
+    # Messaging test: 15 points
+    messaging = docker_result.get('test_messaging', {})
+    if isinstance(messaging, dict):
+        if messaging.get('passed', False):
+            score += 15
+            if not messaging.get('uiMsg', False) and messaging.get('apiMsg', False):
+                score -= 5
+    elif messaging:
+        score += 15
+
+    # Realtime test: 10 points
+    realtime = docker_result.get('test_realtime', {})
+    if isinstance(realtime, dict):
+        if realtime.get('passed', False):
+            score += 10
+    elif realtime:
+        score += 10
+
+    return score
+
+
+def run_benchmark(
+    models: List[str],
+    output_path: str = 'coding_benchmark_results.json',
+    ollama_host: str = 'localhost',
+    timeout: int = 300,
+    skip_visual: bool = False,
+) -> List[CodingBenchmarkResult]:
+    """Run the full coding benchmark."""
+    os.makedirs(SCREENSHOT_BASE, exist_ok=True)
+    results = []
+
+    for model in models:
+        print(f'\n{"="*60}')
+        print(f'Model: {model}')
+        print(f'{"="*60}')
+
+        result = CodingBenchmarkResult(model=model)
+
+        # Step 1: Generate code
+        code_text, elapsed, tps = generate_code(model, ollama_host)
+        result.generation_time = elapsed
+        result.tokens_per_second = tps
+        result.raw_output_length = len(code_text)
+
+        if code_text.startswith('Error:'):
+            result.error_log = code_text
+            print(f'  Generation failed: {code_text[:200]}')
+            results.append(result)
+            continue
+
+        print(f'  Generated {len(code_text)} chars in {elapsed:.1f}s ({tps:.1f} tok/s)')
+
+        # Step 2: Parse files
+        files = parse_generated_files(code_text)
+        result.files_generated = len(files)
+        print(f'  Parsed {len(files)} files: {", ".join(files.keys())}')
+
+        if not files or 'package.json' not in files:
+            result.error_log = 'No package.json found in generated code'
+            print(f'  ERROR: {result.error_log}')
+            results.append(result)
+            continue
+
+        # Step 3: Write to temp dir and run Docker
+        tmpdir = tempfile.mkdtemp(prefix='coding_bench_')
+        try:
+            write_files_to_dir(files, tmpdir)
+
+            # Save raw generated code for reference
+            safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', model)
+            raw_output_path = os.path.join(SCREENSHOT_BASE, safe_name, 'generated_code.txt')
+            os.makedirs(os.path.dirname(raw_output_path), exist_ok=True)
+            with open(raw_output_path, 'w') as f:
+                f.write(code_text)
+
+            docker_result = run_docker_test(tmpdir, model, timeout)
+
+            result.build_success = docker_result.get('build_success', False)
+            result.server_starts = docker_result.get('server_starts', False)
+
+            # Parse test results
+            login = docker_result.get('test_login', {})
+            result.test_login = login.get('passed', False) if isinstance(login, dict) else bool(login)
+
+            friends = docker_result.get('test_friends', {})
+            result.test_friends = friends.get('passed', False) if isinstance(friends, dict) else bool(friends)
+
+            messaging = docker_result.get('test_messaging', {})
+            result.test_messaging = messaging.get('passed', False) if isinstance(messaging, dict) else bool(messaging)
+
+            realtime = docker_result.get('test_realtime', {})
+            result.test_realtime = realtime.get('passed', False) if isinstance(realtime, dict) else bool(realtime)
+
+            if docker_result.get('error'):
+                result.error_log = docker_result['error']
+
+            # Calculate functional score
+            result.functional_score = calculate_functional_score(docker_result)
+            print(f'  Functional score: {result.functional_score}/80')
+
+            # Step 4: Visual evaluation
+            screenshot_dir = os.path.join(SCREENSHOT_BASE, safe_name)
+            screenshots = {}
+            for name in ['login', 'friends', 'dm', 'chat']:
+                path = os.path.join(screenshot_dir, f'{name}.png')
+                if os.path.exists(path):
+                    screenshots[name] = path
+            result.screenshots = screenshots
+
+            if screenshots and not skip_visual:
+                print(f'  Evaluating {len(screenshots)} screenshots with Claude Vision...')
+                visual = evaluate_screenshots(screenshot_dir, model)
+                result.visual_scores = visual
+                result.visual_score = visual_score_to_points(visual)
+                print(f'  Visual score: {result.visual_score:.1f}/20 ({visual.get("comment", "")})')
+            else:
+                result.visual_score = 0.0
+                if not screenshots:
+                    print(f'  No screenshots captured')
+
+            result.total_score = result.functional_score + result.visual_score
+            print(f'  TOTAL: {result.total_score:.1f}/100')
+
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+        results.append(result)
+
+    # Save results
+    output_data = {
+        'benchmark': 'coding',
+        'description': 'React Chat App Generation Benchmark',
+        'results': [asdict(r) for r in results],
+    }
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(output_data, f, ensure_ascii=False, indent=2)
+
+    print_summary(results)
+    return results
+
+
+def print_summary(results: List[CodingBenchmarkResult]):
+    """Print benchmark summary table."""
+    print(f'\n{"="*90}')
+    print('CODING BENCHMARK SUMMARY')
+    print(f'{"="*90}')
+    print(f'{"Model":<25} {"Gen(s)":>7} {"Files":>5} {"Build":>6} {"Login":>6} '
+          f'{"Friend":>7} {"DM":>6} {"RT":>6} {"Func":>6} {"Visual":>7} {"TOTAL":>7}')
+    print('-' * 90)
+
+    for r in results:
+        check = lambda v: "OK" if v else "--"
+        print(f'{r.model:<25} {r.generation_time:>6.0f}s {r.files_generated:>5} '
+              f'{check(r.build_success):>6} {check(r.test_login):>6} '
+              f'{check(r.test_friends):>7} {check(r.test_messaging):>6} '
+              f'{check(r.test_realtime):>6} {r.functional_score:>5.0f}/80 '
+              f'{r.visual_score:>5.0f}/20 {r.total_score:>5.0f}/100')
+
+
+def ensure_docker_image():
+    """Build the Docker image if it doesn't exist."""
+    result = subprocess.run(
+        ['docker', 'images', '-q', DOCKER_IMAGE],
+        capture_output=True, text=True
+    )
+    if not result.stdout.strip():
+        print(f'Building Docker image {DOCKER_IMAGE}...')
+        docker_dir = os.path.join(os.path.dirname(__file__), 'coding_benchmark_docker')
+        subprocess.run(
+            ['docker', 'build', '-t', DOCKER_IMAGE, docker_dir],
+            check=True,
+            timeout=300,
+        )
+        print('Docker image built successfully.')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='LLM Coding Benchmark')
+    parser.add_argument('--models', nargs='+', default=['qwen3:8b'])
+    parser.add_argument('--output', default='coding_benchmark_results.json')
+    parser.add_argument('--host', default='localhost', help='Ollama host')
+    parser.add_argument('--timeout', type=int, default=300, help='Docker timeout (seconds)')
+    parser.add_argument('--skip-visual', action='store_true', help='Skip Claude vision evaluation')
+
+    args = parser.parse_args()
+
+    ensure_docker_image()
+
+    run_benchmark(
+        models=args.models,
+        output_path=args.output,
+        ollama_host=args.host,
+        timeout=args.timeout,
+        skip_visual=args.skip_visual,
+    )
