@@ -1380,6 +1380,20 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | **qwen3.6:35b-a3b** | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | gemma4:e4b | 937s | 10 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
 
+### スクリーンショット
+
+#### gpt-oss:20b（75点 / リトライ3回）
+
+| ログイン | DM画面 | リアルタイムチャット |
+|---|---|---|
+| ![login](coding_benchmark_screenshots/gpt-oss_20b/login.png) | ![dm](coding_benchmark_screenshots/gpt-oss_20b/dm.png) | ![chat](coding_benchmark_screenshots/gpt-oss_20b/chat.png) |
+
+#### qwen3.6:35b-a3b（55点 / リトライ0回）
+
+| ログイン |
+|---|
+| ![login](coding_benchmark_screenshots/qwen3_6_35b-a3b/login.png) |
+
 ### 分析
 
 - **gpt-oss:20b** が最高得点。3回のリトライでエラーを自力修正し、リアルタイム更新含む全機能を実装。UIはシンプルだが完全に動作

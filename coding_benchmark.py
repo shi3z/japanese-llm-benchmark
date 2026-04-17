@@ -467,7 +467,28 @@ def run_benchmark(
                 result.retry_count = attempt
                 print(f'  Functional score: {result.functional_score}/80 (attempt {attempt + 1})')
 
-                # Success - break out of retry loop
+                # If not all tests passed, retry with test failure feedback
+                all_passed = result.test_login and result.test_friends and result.test_messaging and result.test_realtime
+                if not all_passed and attempt < max_retries:
+                    failed_tests = []
+                    if not result.test_login: failed_tests.append('ログイン/サインアップ')
+                    if not result.test_friends: failed_tests.append('フレンドフォロー/解除')
+                    if not result.test_messaging: failed_tests.append('DM送受信')
+                    if not result.test_realtime: failed_tests.append('リアルタイム更新(2秒ポーリング)')
+                    test_error = f"以下の機能テストが失敗しました:\n- " + "\n- ".join(failed_tests)
+                    test_error += f"\n\n現在のスコア: {result.functional_score}/80"
+                    stderr = docker_result.get('stderr', '')
+                    if stderr:
+                        test_error += f"\n\nサーバーログ:\n{stderr[-1000:]}"
+                    print(f'  Tests failed: {", ".join(failed_tests)}')
+                    recovery_prompt = get_recovery_prompt(code_text, test_error, attempt + 1)
+                    code_text, elapsed, _ = generate_code_with_prompt(model, recovery_prompt, ollama_host)
+                    total_gen_time += elapsed
+                    result.retry_count = attempt + 1
+                    print(f'  Recovery generated {len(code_text)} chars in {elapsed:.1f}s')
+                    continue
+
+                # All tests passed or out of retries
                 break
 
             finally:

@@ -21,8 +21,10 @@ server.log
 .vscode/
 *.swp
 
-# Coding benchmark screenshots
-coding_benchmark_screenshots/
+# Coding benchmark (exclude generated code and temp files, keep screenshots)
+coding_benchmark_screenshots/*/generated_code.txt
+coding_benchmark_screenshots/*/results.json
+coding_benchmark_screenshots/*/test_*.json
 
 # OS
 .DS_Store
