@@ -1,0 +1,55 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "qwen3-coder",
+      "generation_time": 564.4044229984283,
+      "tokens_per_second": 102.563288481376,
+      "raw_output_length": 20853,
+      "files_generated": 6,
+      "build_success": true,
+      "server_starts": true,
+      "test_login": true,
+      "test_friends": false,
+      "test_messaging": false,
+      "test_realtime": false,
+      "retry_count": 10,
+      "max_retries": 10,
+      "functional_score": 35.0,
+      "visual_scores": {},
+      "visual_score": 0.0,
+      "total_score": 35.0,
+      "screenshots": {
+        "login": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/qwen3-coder/login.png",
+        "friends": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/qwen3-coder/friends.png",
+        "dm": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/qwen3-coder/dm.png",
+        "chat": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/qwen3-coder/chat.png"
+      },
+      "error_log": ""
+    },
+    {
+      "model": "codestral",
+      "generation_time": 106.85180735588074,
+      "tokens_per_second": 74.31109169704712,
+      "raw_output_length": 1602,
+      "files_generated": 4,
+      "build_success": true,
+      "server_starts": false,
+      "test_login": false,
+      "test_friends": false,
+      "test_messaging": false,
+      "test_realtime": false,
+      "retry_count": 10,
+      "max_retries": 10,
+      "functional_score": 25.0,
+      "visual_scores": {},
+      "visual_score": 0.0,
+      "total_score": 25.0,
+      "screenshots": {
+        "login": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/codestral/login.png"
+      },
+      "error_log": "Frontend server did not start on port 3000 within 45s"
+    }
+  ]
+}
