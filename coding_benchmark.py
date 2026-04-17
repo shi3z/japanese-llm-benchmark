@@ -88,90 +88,86 @@ def get_coding_model_options(model: str) -> dict:
     return options
 
 
-def generate_code(model: str, ollama_host: str = 'localhost') -> tuple:
-    """Call LLM to generate the chat app code."""
-    prompt = get_coding_prompt()
-
-    if ':' in ollama_host:
-        api_url = f'http://{ollama_host}/api/generate'
-    else:
-        api_url = f'http://{ollama_host}:11434/api/generate'
-
-    options = get_coding_model_options(model)
-
-    print(f'  Generating code with {model}...')
+def _call_llama_cpp(api_url: str, prompt: str) -> tuple:
+    """Call llama.cpp /completion endpoint."""
     start_time = time.time()
-
     try:
         response = requests.post(
-            api_url,
-            json={
-                'model': model,
-                'prompt': prompt,
-                'stream': False,
-                'options': options,
-            },
+            f'{api_url}/completion',
+            json={'prompt': prompt, 'n_predict': 65536, 'temperature': 0.3},
+            timeout=1800,
+        )
+        data = response.json()
+        elapsed = time.time() - start_time
+        output = data.get('content', '') or ''
+        tokens = data.get('tokens_predicted', len(output))
+        tps = tokens / elapsed if elapsed > 0 else 0
+        return output.strip(), elapsed, tps
+    except Exception as e:
+        return f'Error: {str(e)}', time.time() - start_time, 0
+
+
+def _call_ollama(api_url: str, model: str, prompt: str) -> tuple:
+    """Call Ollama /api/generate endpoint."""
+    options = get_coding_model_options(model)
+    start_time = time.time()
+    try:
+        response = requests.post(
+            f'{api_url}/api/generate',
+            json={'model': model, 'prompt': prompt, 'stream': False, 'options': options},
             timeout=600,
         )
         data = response.json()
         elapsed = time.time() - start_time
-
         output = data.get('response', '') or ''
-
-        # Handle thinking models
-        if '<think>' in output and '</think>' in output:
-            output = re.sub(r'<think>.*?</think>', '', output, flags=re.DOTALL)
-        if '</think>' in output:
-            output = output.split('</think>')[-1]
-
         eval_count = data.get('eval_count', len(output))
         eval_duration = data.get('eval_duration', elapsed * 1e9) / 1e9
         tps = eval_count / eval_duration if eval_duration > 0 else 0
-
         return output.strip(), elapsed, tps
     except Exception as e:
-        elapsed = time.time() - start_time
-        return f'Error: {str(e)}', elapsed, 0
+        return f'Error: {str(e)}', time.time() - start_time, 0
+
+
+def _clean_thinking(output: str) -> str:
+    """Remove thinking blocks from LLM output."""
+    if '<think>' in output and '</think>' in output:
+        output = re.sub(r'<think>.*?</think>', '', output, flags=re.DOTALL)
+    if '</think>' in output:
+        output = output.split('</think>')[-1]
+    return output.strip()
+
+
+def generate_code(model: str, ollama_host: str = 'localhost') -> tuple:
+    """Call LLM to generate the chat app code."""
+    prompt = get_coding_prompt()
+    print(f'  Generating code with {model}...')
+
+    # Determine API type from host
+    if ':' in ollama_host and not ollama_host.endswith(':11434'):
+        # Non-standard port = llama.cpp server
+        api_url = f'http://{ollama_host}'
+        output, elapsed, tps = _call_llama_cpp(api_url, prompt)
+    else:
+        host = ollama_host.split(':')[0] if ':' in ollama_host else ollama_host
+        api_url = f'http://{host}:11434'
+        output, elapsed, tps = _call_ollama(api_url, model, prompt)
+
+    output = _clean_thinking(output)
+    return output, elapsed, tps
 
 
 def generate_code_with_prompt(model: str, prompt: str, ollama_host: str = 'localhost') -> tuple:
     """Call LLM with a custom prompt (for recovery)."""
-    if ':' in ollama_host:
-        api_url = f'http://{ollama_host}/api/generate'
+    if ':' in ollama_host and not ollama_host.endswith(':11434'):
+        api_url = f'http://{ollama_host}'
+        output, elapsed, tps = _call_llama_cpp(api_url, prompt)
     else:
-        api_url = f'http://{ollama_host}:11434/api/generate'
+        host = ollama_host.split(':')[0] if ':' in ollama_host else ollama_host
+        api_url = f'http://{host}:11434'
+        output, elapsed, tps = _call_ollama(api_url, model, prompt)
 
-    options = get_coding_model_options(model)
-
-    start_time = time.time()
-    try:
-        response = requests.post(
-            api_url,
-            json={
-                'model': model,
-                'prompt': prompt,
-                'stream': False,
-                'options': options,
-            },
-            timeout=600,
-        )
-        data = response.json()
-        elapsed = time.time() - start_time
-
-        output = data.get('response', '') or ''
-        if '<think>' in output and '</think>' in output:
-            output = re.sub(r'<think>.*?</think>', '', output, flags=re.DOTALL)
-        if '</think>' in output:
-            output = output.split('</think>')[-1]
-
-        eval_count = data.get('eval_count', len(output))
-        eval_duration = data.get('eval_duration', elapsed * 1e9) / 1e9
-        tps = eval_count / eval_duration if eval_duration > 0 else 0
-
-        return output.strip(), elapsed, tps
-    except Exception as e:
-        elapsed = time.time() - start_time
-        return f'Error: {str(e)}', elapsed, 0
+    output = _clean_thinking(output)
+    return output, elapsed, tps
 
 
 def parse_generated_files(code_text: str) -> Dict[str, str]:
