@@ -41,12 +41,34 @@ class CodingBenchmarkResult:
     test_friends: bool = False
     test_messaging: bool = False
     test_realtime: bool = False
+    retry_count: int = 0
+    max_retries: int = 10
     functional_score: float = 0.0
     visual_scores: Dict = field(default_factory=dict)
     visual_score: float = 0.0
     total_score: float = 0.0
     screenshots: Dict[str, str] = field(default_factory=dict)
     error_log: str = ''
+
+
+def get_recovery_prompt(original_code: str, error_msg: str, retry_num: int) -> str:
+    """Generate a recovery prompt to fix errors in the generated code."""
+    return f"""前回生成したReactチャットアプリケーションのコードにエラーがありました。
+エラーを修正して、完全なコードを再度出力してください。
+
+## エラー内容 (リトライ {retry_num}/10)
+{error_msg[:2000]}
+
+## 修正指示
+- エラーの原因を特定し、修正してください
+- 全てのファイルを再度 === FILE: path === ... === END FILE === 形式で出力してください
+- package.jsonにはvite, @vitejs/plugin-reactをdevDependenciesに含めてください
+- better-sqlite3がインストールできない場合はsqlite3パッケージや代替手段を使ってください
+- 全てのコードを省略せずに完全に出力してください
+
+## 前回のコード（参考）
+{original_code[:8000]}
+"""
 
 
 def is_thinking_model(model: str) -> bool:
@@ -112,6 +134,46 @@ def generate_code(model: str, ollama_host: str = 'localhost') -> tuple:
         return f'Error: {str(e)}', elapsed, 0
 
 
+def generate_code_with_prompt(model: str, prompt: str, ollama_host: str = 'localhost') -> tuple:
+    """Call LLM with a custom prompt (for recovery)."""
+    if ':' in ollama_host:
+        api_url = f'http://{ollama_host}/api/generate'
+    else:
+        api_url = f'http://{ollama_host}:11434/api/generate'
+
+    options = get_coding_model_options(model)
+
+    start_time = time.time()
+    try:
+        response = requests.post(
+            api_url,
+            json={
+                'model': model,
+                'prompt': prompt,
+                'stream': False,
+                'options': options,
+            },
+            timeout=600,
+        )
+        data = response.json()
+        elapsed = time.time() - start_time
+
+        output = data.get('response', '') or ''
+        if '<think>' in output and '</think>' in output:
+            output = re.sub(r'<think>.*?</think>', '', output, flags=re.DOTALL)
+        if '</think>' in output:
+            output = output.split('</think>')[-1]
+
+        eval_count = data.get('eval_count', len(output))
+        eval_duration = data.get('eval_duration', elapsed * 1e9) / 1e9
+        tps = eval_count / eval_duration if eval_duration > 0 else 0
+
+        return output.strip(), elapsed, tps
+    except Exception as e:
+        elapsed = time.time() - start_time
+        return f'Error: {str(e)}', elapsed, 0
+
+
 def parse_generated_files(code_text: str) -> Dict[str, str]:
     """Parse LLM output into file path -> content mapping."""
     files = {}
@@ -124,6 +186,9 @@ def parse_generated_files(code_text: str) -> Dict[str, str]:
     for match in pattern1.finditer(code_text):
         filepath = match.group(1).strip()
         content = match.group(2)
+        # Remove markdown code fences that LLMs sometimes add inside FILE blocks
+        content = re.sub(r'^```\w*\n', '', content)
+        content = re.sub(r'\n```\s*$', '', content)
         files[filepath] = content
 
     if files:
@@ -218,7 +283,8 @@ def run_docker_test(code_dir: str, model_name: str, timeout: int = 300) -> dict:
         return {
             'build_success': False,
             'server_starts': False,
-            'error': f'No JSON output. stderr: {stderr[-500:]}'
+            'error': f'No JSON output. stderr: {stderr[-500:]}',
+            'stderr': stderr[-2000:] if stderr else '',
         }
 
     except subprocess.TimeoutExpired:
@@ -296,6 +362,7 @@ def run_benchmark(
     ollama_host: str = 'localhost',
     timeout: int = 300,
     skip_visual: bool = False,
+    max_retries: int = 10,
 ) -> List[CodingBenchmarkResult]:
     """Run the full coding benchmark."""
     os.makedirs(SCREENSHOT_BASE, exist_ok=True)
@@ -306,95 +373,130 @@ def run_benchmark(
         print(f'Model: {model}')
         print(f'{"="*60}')
 
-        result = CodingBenchmarkResult(model=model)
+        result = CodingBenchmarkResult(model=model, max_retries=max_retries)
+        safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', model)
+        total_gen_time = 0.0
 
-        # Step 1: Generate code
+        # Step 1: Initial code generation
         code_text, elapsed, tps = generate_code(model, ollama_host)
-        result.generation_time = elapsed
+        total_gen_time += elapsed
         result.tokens_per_second = tps
         result.raw_output_length = len(code_text)
 
         if code_text.startswith('Error:'):
             result.error_log = code_text
+            result.generation_time = total_gen_time
             print(f'  Generation failed: {code_text[:200]}')
             results.append(result)
             continue
 
         print(f'  Generated {len(code_text)} chars in {elapsed:.1f}s ({tps:.1f} tok/s)')
 
-        # Step 2: Parse files
-        files = parse_generated_files(code_text)
-        result.files_generated = len(files)
-        print(f'  Parsed {len(files)} files: {", ".join(files.keys())}')
+        # Retry loop: up to max_retries attempts
+        for attempt in range(max_retries + 1):
+            if attempt > 0:
+                print(f'\n  --- Retry {attempt}/{max_retries} ---')
 
-        if not files or 'package.json' not in files:
-            result.error_log = 'No package.json found in generated code'
-            print(f'  ERROR: {result.error_log}')
-            results.append(result)
-            continue
+            # Parse files
+            files = parse_generated_files(code_text)
+            result.files_generated = len(files)
+            print(f'  Parsed {len(files)} files: {", ".join(list(files.keys())[:8])}')
 
-        # Step 3: Write to temp dir and run Docker
-        tmpdir = tempfile.mkdtemp(prefix='coding_bench_')
-        try:
-            write_files_to_dir(files, tmpdir)
+            if not files or 'package.json' not in files:
+                error_msg = 'No package.json found in generated code'
+                print(f'  ERROR: {error_msg}')
+                if attempt < max_retries:
+                    recovery_prompt = get_recovery_prompt(code_text, error_msg, attempt + 1)
+                    code_text, elapsed, _ = generate_code_with_prompt(model, recovery_prompt, ollama_host)
+                    total_gen_time += elapsed
+                    result.retry_count = attempt + 1
+                    continue
+                else:
+                    result.error_log = error_msg
+                    break
 
-            # Save raw generated code for reference
-            safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', model)
-            raw_output_path = os.path.join(SCREENSHOT_BASE, safe_name, 'generated_code.txt')
-            os.makedirs(os.path.dirname(raw_output_path), exist_ok=True)
-            with open(raw_output_path, 'w') as f:
-                f.write(code_text)
+            # Write to temp dir and run Docker
+            tmpdir = tempfile.mkdtemp(prefix='coding_bench_')
+            try:
+                write_files_to_dir(files, tmpdir)
 
-            docker_result = run_docker_test(tmpdir, model, timeout)
+                # Save generated code
+                raw_output_path = os.path.join(SCREENSHOT_BASE, safe_name, 'generated_code.txt')
+                os.makedirs(os.path.dirname(raw_output_path), exist_ok=True)
+                with open(raw_output_path, 'w') as f:
+                    f.write(code_text)
 
-            result.build_success = docker_result.get('build_success', False)
-            result.server_starts = docker_result.get('server_starts', False)
+                docker_result = run_docker_test(tmpdir, model, timeout)
 
-            # Parse test results
-            login = docker_result.get('test_login', {})
-            result.test_login = login.get('passed', False) if isinstance(login, dict) else bool(login)
+                result.build_success = docker_result.get('build_success', False)
+                result.server_starts = docker_result.get('server_starts', False)
 
-            friends = docker_result.get('test_friends', {})
-            result.test_friends = friends.get('passed', False) if isinstance(friends, dict) else bool(friends)
+                # If build or server failed, try recovery
+                if not result.build_success or not result.server_starts:
+                    error_msg = docker_result.get('error', '')
+                    stderr = docker_result.get('stderr', '')
+                    full_error = f"{error_msg}\n{stderr}".strip()
+                    print(f'  FAILED: {error_msg[:200]}')
 
-            messaging = docker_result.get('test_messaging', {})
-            result.test_messaging = messaging.get('passed', False) if isinstance(messaging, dict) else bool(messaging)
+                    if attempt < max_retries:
+                        recovery_prompt = get_recovery_prompt(code_text, full_error, attempt + 1)
+                        code_text, elapsed, _ = generate_code_with_prompt(model, recovery_prompt, ollama_host)
+                        total_gen_time += elapsed
+                        result.retry_count = attempt + 1
+                        print(f'  Recovery generated {len(code_text)} chars in {elapsed:.1f}s')
+                        continue
+                    else:
+                        result.error_log = full_error
+                        break
 
-            realtime = docker_result.get('test_realtime', {})
-            result.test_realtime = realtime.get('passed', False) if isinstance(realtime, dict) else bool(realtime)
+                # Parse test results
+                login = docker_result.get('test_login', {})
+                result.test_login = login.get('passed', False) if isinstance(login, dict) else bool(login)
+                friends = docker_result.get('test_friends', {})
+                result.test_friends = friends.get('passed', False) if isinstance(friends, dict) else bool(friends)
+                messaging = docker_result.get('test_messaging', {})
+                result.test_messaging = messaging.get('passed', False) if isinstance(messaging, dict) else bool(messaging)
+                realtime = docker_result.get('test_realtime', {})
+                result.test_realtime = realtime.get('passed', False) if isinstance(realtime, dict) else bool(realtime)
 
-            if docker_result.get('error'):
-                result.error_log = docker_result['error']
+                if docker_result.get('error'):
+                    result.error_log = docker_result['error']
 
-            # Calculate functional score
-            result.functional_score = calculate_functional_score(docker_result)
-            print(f'  Functional score: {result.functional_score}/80')
+                # Calculate functional score
+                result.functional_score = calculate_functional_score(docker_result)
+                result.retry_count = attempt
+                print(f'  Functional score: {result.functional_score}/80 (attempt {attempt + 1})')
 
-            # Step 4: Visual evaluation
-            screenshot_dir = os.path.join(SCREENSHOT_BASE, safe_name)
-            screenshots = {}
-            for name in ['login', 'friends', 'dm', 'chat']:
-                path = os.path.join(screenshot_dir, f'{name}.png')
-                if os.path.exists(path):
-                    screenshots[name] = path
-            result.screenshots = screenshots
+                # Success - break out of retry loop
+                break
 
-            if screenshots and not skip_visual:
-                print(f'  Evaluating {len(screenshots)} screenshots with Claude Vision...')
-                visual = evaluate_screenshots(screenshot_dir, model)
-                result.visual_scores = visual
-                result.visual_score = visual_score_to_points(visual)
-                print(f'  Visual score: {result.visual_score:.1f}/20 ({visual.get("comment", "")})')
-            else:
-                result.visual_score = 0.0
-                if not screenshots:
-                    print(f'  No screenshots captured')
+            finally:
+                shutil.rmtree(tmpdir, ignore_errors=True)
 
-            result.total_score = result.functional_score + result.visual_score
-            print(f'  TOTAL: {result.total_score:.1f}/100')
+        result.generation_time = total_gen_time
 
-        finally:
-            shutil.rmtree(tmpdir, ignore_errors=True)
+        # Visual evaluation (after retry loop)
+        screenshot_dir = os.path.join(SCREENSHOT_BASE, safe_name)
+        screenshots = {}
+        for name in ['login', 'friends', 'dm', 'chat']:
+            path = os.path.join(screenshot_dir, f'{name}.png')
+            if os.path.exists(path):
+                screenshots[name] = path
+        result.screenshots = screenshots
+
+        if screenshots and not skip_visual:
+            print(f'  Evaluating {len(screenshots)} screenshots with Claude Vision...')
+            visual = evaluate_screenshots(screenshot_dir, model)
+            result.visual_scores = visual
+            result.visual_score = visual_score_to_points(visual)
+            print(f'  Visual score: {result.visual_score:.1f}/20 ({visual.get("comment", "")})')
+        else:
+            result.visual_score = 0.0
+            if not screenshots:
+                print(f'  No screenshots captured')
+
+        result.total_score = result.functional_score + result.visual_score
+        print(f'  TOTAL: {result.total_score:.1f}/100 (retries: {result.retry_count})')
 
         results.append(result)
 
@@ -416,13 +518,13 @@ def print_summary(results: List[CodingBenchmarkResult]):
     print(f'\n{"="*90}')
     print('CODING BENCHMARK SUMMARY')
     print(f'{"="*90}')
-    print(f'{"Model":<25} {"Gen(s)":>7} {"Files":>5} {"Build":>6} {"Login":>6} '
+    print(f'{"Model":<25} {"Gen(s)":>7} {"Retry":>5} {"Build":>6} {"Login":>6} '
           f'{"Friend":>7} {"DM":>6} {"RT":>6} {"Func":>6} {"Visual":>7} {"TOTAL":>7}')
-    print('-' * 90)
+    print('-' * 95)
 
     for r in results:
         check = lambda v: "OK" if v else "--"
-        print(f'{r.model:<25} {r.generation_time:>6.0f}s {r.files_generated:>5} '
+        print(f'{r.model:<25} {r.generation_time:>6.0f}s {r.retry_count:>5} '
               f'{check(r.build_success):>6} {check(r.test_login):>6} '
               f'{check(r.test_friends):>7} {check(r.test_messaging):>6} '
               f'{check(r.test_realtime):>6} {r.functional_score:>5.0f}/80 '
@@ -453,6 +555,7 @@ if __name__ == '__main__':
     parser.add_argument('--host', default='localhost', help='Ollama host')
     parser.add_argument('--timeout', type=int, default=300, help='Docker timeout (seconds)')
     parser.add_argument('--skip-visual', action='store_true', help='Skip Claude vision evaluation')
+    parser.add_argument('--max-retries', type=int, default=10, help='Max retry attempts on failure')
 
     args = parser.parse_args()
 
@@ -464,4 +567,5 @@ if __name__ == '__main__':
         ollama_host=args.host,
         timeout=args.timeout,
         skip_visual=args.skip_visual,
+        max_retries=args.max_retries,
     )
