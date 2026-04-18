@@ -798,7 +798,21 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 
 # Mac (Apple Silicon) ベンチマーク
 
-## Ternary-Bonsai-8B MLX 2-bit (NEW!) - Apple Silicon
+## 要約ベンチマーク (Mac Studio M3 Ultra 512GB, Ollama)
+
+| Model | Avg Time | Tok/s | ROUGE-1 | ROUGE-2 | ROUGE-L |
+|---|---:|---:|---:|---:|---:|
+| **gpt-oss:20b** | 13.1s | **99.8** | 0.614 | 0.325 | **0.303** |
+| qwen2.5:32b | 17.6s | 27.8 | 0.612 | 0.321 | 0.302 |
+| Ternary-Bonsai-8B (MLX) | 3.0s | 56.9 | 0.563 | 0.268 | 0.259 |
+
+- **gpt-oss:20b**: M3 Ultra上で99.8 tok/s。RTX 5090の約半分だが非常に高速
+- **qwen2.5:32b**: 27.8 tok/sで品質はgpt-ossと同等（ROUGE-L 0.302）
+- **Ternary-Bonsai-8B**: MLX 2-bit。速度は出るが品質が劣る
+
+---
+
+## Ternary-Bonsai-8B MLX 2-bit - Apple Silicon
 - **ROUGE-L**: 0.259 | **Speed**: 56.9 tok/s | **Platform**: Apple M3 Ultra 512GB (MLX)
 
 [prism-ml/Ternary-Bonsai-8B-mlx-2bit](https://huggingface.co/prism-ml/Ternary-Bonsai-8B-mlx-2bit) をMLXで動作テスト。
