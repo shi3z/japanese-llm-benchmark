@@ -14,6 +14,7 @@ A benchmark tool for evaluating Japanese language capabilities of various LLMs.
 - [RTX 5060 (8GB) ベンチマーク](#rtx-5060-8gb-ベンチマーク)
   - [Gemma 4 ベンチマーク](#gemma-4-ベンチマーク結果-2026年4月リリース)
 - [Mac (Apple Silicon) ベンチマーク](#mac-apple-silicon-ベンチマーク)
+- [DGX Spark (GB10) ベンチマーク](#dgx-spark-gb10-ベンチマーク)
 - [大規模モデル (A100) テスト](#大規模モデルa100テスト)
 - [特殊環境が必要なモデル](#特殊環境が必要なモデル)
 - [APPENDIX](APPENDIX.md) - 量子化テスト、Needle-in-Haystack、TurboQuant/RotorQuant詳細
@@ -830,6 +831,22 @@ print(generate(model, tokenizer, prompt='日本の首都は？', max_tokens=256)
 ```
 
 **結論**: Apple Silicon環境でBonsaiを使いたい場合の選択肢だが、品質・速度ともにGGUF 1-bit版に大きく劣る。MLX 2-bit量子化はGGUF 1-bitほど効率的ではない。
+
+---
+
+# DGX Spark (GB10) ベンチマーク
+
+NVIDIA DGX Spark（GB10 GPU、統合メモリ128GB、aarch64）での推論速度比較。
+
+### 要約ベンチマーク
+
+| Model | Avg Time | Tok/s | ROUGE-1 | ROUGE-2 | ROUGE-L | 備考 |
+|---|---:|---:|---:|---:|---:|---|
+| **gpt-oss:20b** | 61.3s | **27.8** | 0.617 | 0.336 | **0.310** | 安定動作 |
+| qwen3.5:9b | 300s | 0.0 | 0.017 | 0.001 | 0.007 | 全サンプルタイムアウト |
+
+- **gpt-oss:20b**: 27.8 tok/sで安定動作。ROUGE-L 0.310はA100（88 tok/s）の1/3の速度だが品質は同等
+- **qwen3.5**: Thinkingモデルが300秒以内に回答を完了できず全滅。DGX SparkではGPU使用率96%（他プロセスと競合）が影響の可能性
 
 ---
 

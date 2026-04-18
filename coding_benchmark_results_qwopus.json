@@ -1,0 +1,29 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "Qwopus3.5-9B",
+      "generation_time": 5050.496725797653,
+      "tokens_per_second": 102.18229070545557,
+      "raw_output_length": 213973,
+      "files_generated": 0,
+      "build_success": false,
+      "server_starts": false,
+      "test_login": false,
+      "test_friends": false,
+      "test_messaging": false,
+      "test_realtime": false,
+      "retry_count": 10,
+      "max_retries": 10,
+      "functional_score": 25.0,
+      "visual_scores": {},
+      "visual_score": 0.0,
+      "total_score": 25.0,
+      "screenshots": {
+        "login": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/Qwopus3_5-9B/login.png"
+      },
+      "error_log": "No package.json found in generated code"
+    }
+  ]
+}
