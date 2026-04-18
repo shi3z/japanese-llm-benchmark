@@ -806,16 +806,18 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 
 # Mac (Apple Silicon) ベンチマーク
 
-## 要約ベンチマーク (Mac Studio M3 Ultra 512GB, Ollama)
+## 要約ベンチマーク (Mac Studio M3 Ultra 512GB, Ollama, n=10)
 
 | Model | Avg Time | Tok/s | ROUGE-1 | ROUGE-2 | ROUGE-L |
 |---|---:|---:|---:|---:|---:|
-| **gpt-oss:20b** | 13.1s | **99.8** | 0.614 | 0.325 | **0.303** |
-| qwen2.5:32b | 17.6s | 27.8 | 0.612 | 0.321 | 0.302 |
+| **gpt-oss:20b** | 15.0s | **99.5** | 0.594 | 0.290 | 0.266 |
+| gpt-oss:20b-long | 19.1s | 98.7 | 0.577 | 0.280 | 0.267 |
+| **qwen2.5:32b** | 13.1s | 27.7 | 0.619 | 0.303 | **0.278** |
 | Ternary-Bonsai-8B (MLX) | 3.0s | 56.9 | 0.563 | 0.268 | 0.259 |
 
-- **gpt-oss:20b**: M3 Ultra上で99.8 tok/s。RTX 5090の約半分だが非常に高速
-- **qwen2.5:32b**: 27.8 tok/sで品質はgpt-ossと同等（ROUGE-L 0.302）
+- **gpt-oss:20b**: M3 Ultra上で**99.5 tok/s**。統合メモリの恩恵で高速
+- **qwen2.5:32b**: 27.7 tok/sだが**ROUGE-L最高**（0.278）。品質重視なら最適
+- **gpt-oss:20b-long**: 128Kコンテキスト版。速度は同等だが品質微低下
 - **Ternary-Bonsai-8B**: MLX 2-bit。速度は出るが品質が劣る
 
 ---
