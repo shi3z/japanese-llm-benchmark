@@ -808,17 +808,20 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 
 ## 要約ベンチマーク (Mac Studio M3 Ultra 512GB, Ollama, n=10)
 
-| Model | Avg Time | Tok/s | ROUGE-1 | ROUGE-2 | ROUGE-L |
-|---|---:|---:|---:|---:|---:|
-| **gpt-oss:20b** | 15.0s | **99.5** | 0.594 | 0.290 | 0.266 |
-| gpt-oss:20b-long | 19.1s | 98.7 | 0.577 | 0.280 | 0.267 |
-| **qwen2.5:32b** | 13.1s | 27.7 | 0.619 | 0.303 | **0.278** |
-| Ternary-Bonsai-8B (MLX) | 3.0s | 56.9 | 0.563 | 0.268 | 0.259 |
+| Model | Size | Avg Time | Tok/s | ROUGE-1 | ROUGE-2 | ROUGE-L |
+|---|---:|---:|---:|---:|---:|---:|
+| gurubot/gpt-oss-derestricted:20b | 15GB | 11.3s | **108.4** | 0.527 | 0.240 | 0.233 |
+| **gpt-oss:20b** | 13GB | 15.0s | 99.5 | 0.594 | 0.290 | 0.266 |
+| gpt-oss-128k | 13GB | 12.7s | 98.8 | 0.568 | 0.278 | 0.267 |
+| gpt-oss:20b-long | 13GB | 19.1s | 98.7 | 0.577 | 0.280 | 0.267 |
+| Ternary-Bonsai-8B (MLX) | 2GB | 3.0s | 56.9 | 0.563 | 0.268 | 0.259 |
+| **qwen2.5:32b** | 19GB | 13.1s | 27.7 | **0.619** | **0.303** | **0.278** |
 
-- **gpt-oss:20b**: M3 Ultra上で**99.5 tok/s**。統合メモリの恩恵で高速
+- **gurubot/gpt-oss-derestricted:20b**: M3 Ultra上で最速**108.4 tok/s**だが品質はやや低い
+- **gpt-oss:20b**: 99.5 tok/sで速度と品質のバランスが良い
 - **qwen2.5:32b**: 27.7 tok/sだが**ROUGE-L最高**（0.278）。品質重視なら最適
-- **gpt-oss:20b-long**: 128Kコンテキスト版。速度は同等だが品質微低下
-- **Ternary-Bonsai-8B**: MLX 2-bit。速度は出るが品質が劣る
+- **Ternary-Bonsai-8B**: MLX 2-bit。高速だが品質が劣る
+- M3 Ultraの統合メモリ（512GB）により、32BパラメータモデルもVRAM制限なく動作
 
 ---
 
