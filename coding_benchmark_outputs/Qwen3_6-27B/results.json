@@ -1,0 +1,24 @@
+{
+  "model": "Qwen3.6-27B",
+  "model_id": "Qwen/Qwen3.6-27B",
+  "generation_time": 2460.49254155159,
+  "tokens_per_second": 5.6037560639404616,
+  "output_tokens": 13788,
+  "raw_output_length": 50192,
+  "thinking_length": 0,
+  "code_output_length": 18665,
+  "files_generated": 7,
+  "files": [
+    "package.json",
+    "vite.config.js",
+    "server.js",
+    "src/main.jsx",
+    "src/App.jsx",
+    "index.html",
+    "start.sh"
+  ],
+  "has_package_json": true,
+  "has_server_js": true,
+  "has_app_jsx": true,
+  "has_index_html": true
+}
