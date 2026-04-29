@@ -89,18 +89,43 @@ def get_coding_model_options(model: str) -> dict:
 
 
 def _call_llama_cpp(api_url: str, prompt: str) -> tuple:
-    """Call llama.cpp /completion endpoint."""
+    """Call llama.cpp /v1/chat/completions endpoint (OpenAI compatible)."""
     start_time = time.time()
     try:
         response = requests.post(
-            f'{api_url}/completion',
-            json={'prompt': prompt, 'n_predict': 65536, 'temperature': 0.3},
+            f'{api_url}/v1/chat/completions',
+            json={
+                'messages': [{'role': 'user', 'content': prompt}],
+                'max_tokens': 65536,
+                'temperature': 0.3,
+            },
             timeout=1800,
         )
         data = response.json()
         elapsed = time.time() - start_time
-        output = data.get('content', '') or ''
-        tokens = data.get('tokens_predicted', len(output))
+        output = data.get('choices', [{}])[0].get('message', {}).get('content', '') or ''
+        usage = data.get('usage', {})
+        tokens = usage.get('completion_tokens', len(output))
+        tps = tokens / elapsed if elapsed > 0 else 0
+        return output.strip(), elapsed, tps
+    except Exception as e:
+        return f'Error: {str(e)}', time.time() - start_time, 0
+
+
+def _call_mlx(api_url: str, prompt: str) -> tuple:
+    """Call MLX /v1/completions endpoint."""
+    start_time = time.time()
+    try:
+        response = requests.post(
+            f'{api_url}/v1/completions',
+            json={'prompt': prompt, 'max_tokens': 65536, 'temperature': 0.3},
+            timeout=1800,
+        )
+        data = response.json()
+        elapsed = time.time() - start_time
+        output = data.get('choices', [{}])[0].get('text', '') or ''
+        usage = data.get('usage', {})
+        tokens = usage.get('completion_tokens', len(output))
         tps = tokens / elapsed if elapsed > 0 else 0
         return output.strip(), elapsed, tps
     except Exception as e:
@@ -137,6 +162,23 @@ def _clean_thinking(output: str) -> str:
     return output.strip()
 
 
+def _detect_server_type(api_url: str) -> str:
+    """Detect server type by checking available endpoints."""
+    try:
+        # Check if llama.cpp (supports /v1/chat/completions)
+        r = requests.post(
+            f'{api_url}/v1/chat/completions',
+            json={'messages': [{'role': 'user', 'content': 'test'}], 'max_tokens': 1},
+            timeout=10,
+        )
+        if r.ok:
+            return 'llama_cpp'
+    except:
+        pass
+    # Fall back to MLX (only supports /v1/completions)
+    return 'mlx'
+
+
 def generate_code(model: str, ollama_host: str = 'localhost') -> tuple:
     """Call LLM to generate the chat app code."""
     prompt = get_coding_prompt()
@@ -144,9 +186,13 @@ def generate_code(model: str, ollama_host: str = 'localhost') -> tuple:
 
     # Determine API type from host
     if ':' in ollama_host and not ollama_host.endswith(':11434'):
-        # Non-standard port = llama.cpp server
+        # Non-standard port = llama.cpp or MLX server
         api_url = f'http://{ollama_host}'
-        output, elapsed, tps = _call_llama_cpp(api_url, prompt)
+        server_type = _detect_server_type(api_url)
+        if server_type == 'mlx':
+            output, elapsed, tps = _call_mlx(api_url, prompt)
+        else:
+            output, elapsed, tps = _call_llama_cpp(api_url, prompt)
     else:
         host = ollama_host.split(':')[0] if ':' in ollama_host else ollama_host
         api_url = f'http://{host}:11434'
@@ -160,7 +206,11 @@ def generate_code_with_prompt(model: str, prompt: str, ollama_host: str = 'local
     """Call LLM with a custom prompt (for recovery)."""
     if ':' in ollama_host and not ollama_host.endswith(':11434'):
         api_url = f'http://{ollama_host}'
-        output, elapsed, tps = _call_llama_cpp(api_url, prompt)
+        server_type = _detect_server_type(api_url)
+        if server_type == 'mlx':
+            output, elapsed, tps = _call_mlx(api_url, prompt)
+        else:
+            output, elapsed, tps = _call_llama_cpp(api_url, prompt)
     else:
         host = ollama_host.split(':')[0] if ':' in ollama_host else ollama_host
         api_url = f'http://{host}:11434'

@@ -1,0 +1,37 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "deepseek-v4-flash-iq2xxs",
+      "generation_time": 1511.9860079288483,
+      "tokens_per_second": 20.17700249176768,
+      "raw_output_length": 17932,
+      "files_generated": 11,
+      "build_success": true,
+      "server_starts": true,
+      "test_login": false,
+      "test_friends": false,
+      "test_messaging": false,
+      "test_realtime": false,
+      "retry_count": 5,
+      "max_retries": 5,
+      "functional_score": 25.0,
+      "visual_scores": {
+        "layout": 0,
+        "aesthetics": 0,
+        "usability": 0,
+        "completeness": 0,
+        "uniqueness": 0,
+        "overall": 0,
+        "comment": "Error: No module named 'anthropic'"
+      },
+      "visual_score": 0.0,
+      "total_score": 25.0,
+      "screenshots": {
+        "login": "/Users/shi3z/git/japanese-llm-benchmark/coding_benchmark_screenshots/deepseek-v4-flash-iq2xxs/login.png"
+      },
+      "error_log": ""
+    }
+  ]
+}

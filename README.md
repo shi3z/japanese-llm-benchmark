@@ -655,10 +655,12 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 
 | Model | 生成時間 | リトライ | Build | Login | Friend | DM | RT | 機能 | TOTAL |
 |---|---:|---:|---|---|---|---|---|---:|---:|
-| 🥇**Claude Opus 4.7** | ~30s | 1 | OK | OK | OK | OK | OK | **80/80** | **~96/100** |
-| **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | **75/80** | **75/100** |
-| **qwen3.6:35b-a3b** | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
+| 🥇 **Claude Opus 4.7** | ~30s | 1 | OK | OK | OK | OK | OK | **80/80** | **~96/100** |
+| 🥈 **qwen3.6:35b-a3b-coding-mxfp8** | 148s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
+| 🥉 **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
+| qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
+| DeepSeek-V4-Flash IQ2XXS | 1512s | 5 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | Qwopus3.5-9B | 5050s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | codestral:22b | 107s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | gemma4:e4b | 937s | 10 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
@@ -673,6 +675,64 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | **生成ファイル数** | 7 (package.json, server.js, App.jsx, vite.config.js, main.jsx, index.html, start.sh) |
 
 > ⚠️ Tesla V100 32GB x4 + transformers環境でのコード生成のみ。Docker未インストールのため機能テスト未実施。全7ファイルが正しく生成されたことを確認。
+
+### 新規テスト結果 (2026年4月)
+
+#### qwen3.6:35b-a3b-coding-mxfp8（80点 / リトライ0回）🥇
+
+Mac Studio M3 Ultra (512GB) + Ollama v0.22.0 でテスト。**機能テスト満点（80/80）を初回で達成**。
+
+| 項目 | 結果 |
+|---|---|
+| 生成時間 | 148秒 |
+| 生成速度 | 73.3 tok/s |
+| リトライ | 0回 |
+| 機能スコア | **80/80（満点）** |
+
+- ✅ ビルド成功
+- ✅ ログイン/サインアップ
+- ✅ フレンドフォロー/解除
+- ✅ DM送受信
+- ✅ リアルタイム更新（2秒ポーリング）
+
+**評価**: Qwen3.6のコーディング特化バリアント（MXFP8量子化）は、フルスタックReactアプリ生成タスクで最高性能を発揮。37GBのVRAM使用で、全機能を初回で正しく実装。
+
+---
+
+#### DeepSeek-V4-Flash IQ2XXS（25点 / リトライ5回）
+
+Mac Studio M3 Ultra (512GB) + [antirez/llama.cpp fork](https://github.com/antirez/llama.cpp) でテスト。158Bパラメータ（13Bアクティブ）のMoEモデルを2bit量子化（81GB）で動作。
+
+| 項目 | 結果 |
+|---|---|
+| 生成時間 | 1512秒（約25分） |
+| 生成速度 | 20.2 tok/s |
+| リトライ | 5回 |
+| 機能スコア | 25/80 |
+
+- ✅ ビルド成功
+- ❌ ログイン/サインアップ
+- ❌ フレンドフォロー/解除
+- ❌ DM送受信
+- ❌ リアルタイム更新
+
+**評価**: DeepSeek-V4-Flashは158Bパラメータの大規模モデルだが、IQ2XXS（約2bit）の極端な量子化により、コード生成品質が大幅に低下。Reactアプリの骨格は生成できるが、認証やAPI連携の実装に課題。Q4_K_M量子化版はantirez forkと非互換のため未テスト。
+
+**動作方法（antirez fork）**:
+```bash
+# antirez版 llama.cpp をビルド
+git clone https://github.com/antirez/llama.cpp && cd llama.cpp
+cmake -B build -DGGML_METAL=ON && cmake --build build -j8
+
+# IQ2XXSモデルをダウンロード（81GB）
+# HuggingFaceからダウンロード
+
+# サーバー起動
+./build/bin/llama-server -m DeepSeek-V4-Flash-IQ2XXS.gguf \
+  --host 0.0.0.0 --port 8080 -ngl 999 -c 8192
+```
+
+---
 
 ### スクリーンショット
 
@@ -706,9 +766,11 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 
 ### 分析
 
-- **Claude Opus 4.7** が新記録。機能点 80/80 完全満点。better-sqlite3 の ESM import で初回エラー→1回リトライで修正。デザインはダークテーマ+紫グラデーション+glassmorphism+メッセージバブル。生成~30秒。デザイン点 16-18/20（推定、非公式）
-- **gpt-oss:20b** が次点。3回のリトライでエラーを自力修正し、リアルタイム更新含む全機能を実装。UIはシンプルだが完全に動作
+- 🥇 **Claude Opus 4.7** が最高得点（80/100）。機能点 80/80 完全満点。better-sqlite3 の ESM import で初回エラー→1回リトライで修正。デザインはダークテーマ+紫グラデーション+glassmorphism+メッセージバブル。生成~30秒
+- 🥈 **qwen3.6:35b-a3b-coding-mxfp8** が同点1位（80/100）。初回で全機能テストをパス。MXFP8量子化でVRAM効率と性能を両立。Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論
+- 🥉 **gpt-oss:20b** が次点（75/100）。3回のリトライでエラーを自力修正し、リアルタイム更新含む全機能を実装。UIはシンプルだが完全に動作
 - **qwen3.6:35b-a3b** は一発で動くコードを生成（リトライ0）。デザインは美しい（ダークテーマ）が、リアルタイム更新テストが未通過
+- **DeepSeek-V4-Flash IQ2XXS** は158Bパラメータの大規模モデルだが、2bit量子化により性能劣化。ビルドは成功するが認証・API連携が正しく動作せず25点止まり
 - **qwen3-coder:30b** はビルド・ログインまで通るが、フレンド/DM/RTのUI実装が不完全。コーディング特化モデルでもフルスタックアプリ生成は難しい
 - **Qwopus3.5-9B** はビルド・サーバー起動まで成功し美しいUI（紫グラデーション）を生成するが、APIエンドポイントが仕様と異なりテスト全滅。思考モデルのため1回の生成に600秒超、10リトライで5050秒（84分）
 - **codestral:22b** はビルドは通るがフロントエンドにエラー。10回リトライしても解決できず。生成コードが短い（2.8K文字）のが根本原因
@@ -822,6 +884,13 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 ---
 
 # Mac (Apple Silicon) ベンチマーク
+
+## コーディングベンチマーク (Mac Studio M3 Ultra 512GB)
+
+| Model | Size | 速度 | 機能 | TOTAL | 備考 |
+|---|---:|---:|---:|---:|---|
+| 🥇 **qwen3.6:35b-a3b-coding-mxfp8** | 37GB | 73.3 tok/s | **80/80** | **80/100** | Ollama v0.22.0、初回成功 |
+| DeepSeek-V4-Flash IQ2XXS | 81GB | 20.2 tok/s | 25/80 | 25/100 | antirez fork、5リトライ |
 
 ## 要約ベンチマーク (Mac Studio M3 Ultra 512GB, Ollama, n=10)
 
