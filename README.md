@@ -740,6 +740,14 @@ cmake -B build -DGGML_METAL=ON && cmake --build build -j8
 
 ダークテーマ + 紫グラデーション + glassmorphismカード + メッセージバブル形式。レスポンシブ対応。
 
+#### qwen3.6:35b-a3b-coding-mxfp8（80点 / リトライ0回）
+
+Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論。機能点80/80で全テストパス。ダークテーマで美しいUI。
+
+| ログイン | フレンド | DM | チャット |
+|---|---|---|---|
+| ![login](coding_benchmark_screenshots/qwen3_6_35b-a3b-coding-mxfp8/login.png) | ![friends](coding_benchmark_screenshots/qwen3_6_35b-a3b-coding-mxfp8/friends.png) | ![dm](coding_benchmark_screenshots/qwen3_6_35b-a3b-coding-mxfp8/dm.png) | ![chat](coding_benchmark_screenshots/qwen3_6_35b-a3b-coding-mxfp8/chat.png) |
+
 #### gpt-oss:20b（75点 / リトライ3回）
 
 | ログイン | DM画面 | リアルタイムチャット |
