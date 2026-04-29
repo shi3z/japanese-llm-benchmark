@@ -655,9 +655,8 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 
 | Model | 生成時間 | リトライ | Build | Login | Friend | DM | RT | 機能 | TOTAL |
 |---|---:|---:|---|---|---|---|---|---:|---:|
-| 🥇 **Claude Opus 4.7** | ~30s | 1 | OK | OK | OK | OK | OK | **80/80** | **~96/100** |
-| 🥈 **qwen3.6:35b-a3b-coding-mxfp8** | 148s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
-| 🥉 **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
+| **qwen3.6:35b-a3b-coding-mxfp8** | 148s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
+| **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
 | qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
 | DeepSeek-V4-Flash IQ2XXS | 1512s | 5 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
@@ -735,10 +734,6 @@ cmake -B build -DGGML_METAL=ON && cmake --build build -j8
 ---
 
 ### スクリーンショット
-
-#### Claude Opus 4.7（~96点 / リトライ1回）
-
-ダークテーマ + 紫グラデーション + glassmorphismカード + メッセージバブル形式。レスポンシブ対応。
 
 #### qwen3.6:35b-a3b-coding-mxfp8（80点 / リトライ0回）
 
