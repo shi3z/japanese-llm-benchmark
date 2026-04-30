@@ -5,12 +5,12 @@ A benchmark tool for evaluating Japanese language capabilities of various LLMs.
 ## 目次 (Table of Contents)
 
 - [Features / Installation / Usage](#features)
+- [コーディングベンチマーク](#コーディングベンチマーク-reactチャットアプリ生成)
 - [RTX 5090 (32GB) ベンチマーク](#rtx-5090-32gb-ベンチマーク)
   - [総合ランキング](#総合ランキング)
   - [定性的評価 (S+/S/A/B/C/D Tier)](#定性的評価)
   - [キーワード抽出ベンチマーク](#キーワード抽出ベンチマーク)
   - [VLM (Vision Language Model) ベンチマーク](#vlm-vision-language-model-ベンチマーク)
-  - [コーディングベンチマーク](#コーディングベンチマーク-reactチャットアプリ生成)
 - [RTX 5060 (8GB) ベンチマーク](#rtx-5060-8gb-ベンチマーク)
   - [Gemma 4 ベンチマーク](#gemma-4-ベンチマーク結果-2026年4月リリース)
 - [Mac (Apple Silicon) ベンチマーク](#mac-apple-silicon-ベンチマーク)
@@ -657,9 +657,9 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 |---|---:|---:|---|---|---|---|---|---:|---:|
 | **qwen3.6:35b-a3b-coding-mxfp8** | 148s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
 | **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
+| DeepSeek-V4-Flash IQ2XXS | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
-| DeepSeek-V4-Flash IQ2XXS | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | Qwopus3.5-9B | 5050s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | codestral:22b | 107s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | gemma4:e4b | 937s | 10 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
@@ -774,9 +774,8 @@ Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論。機能点80/80で全�
 
 ### 分析
 
-- 🥇 **Claude Opus 4.7** が最高得点（80/100）。機能点 80/80 完全満点。better-sqlite3 の ESM import で初回エラー→1回リトライで修正。デザインはダークテーマ+紫グラデーション+glassmorphism+メッセージバブル。生成~30秒
-- 🥈 **qwen3.6:35b-a3b-coding-mxfp8** が同点1位（80/100）。初回で全機能テストをパス。MXFP8量子化でVRAM効率と性能を両立。Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論
-- 🥉 **gpt-oss:20b** が次点（75/100）。3回のリトライでエラーを自力修正し、リアルタイム更新含む全機能を実装。UIはシンプルだが完全に動作
+- **qwen3.6:35b-a3b-coding-mxfp8** が同点1位（80/100）。初回で全機能テストをパス。MXFP8量子化でVRAM効率と性能を両立。Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論
+- **gpt-oss:20b** が次点（75/100）。3回のリトライでエラーを自力修正し、リアルタイム更新含む全機能を実装。UIはシンプルだが完全に動作
 - **qwen3.6:35b-a3b** は一発で動くコードを生成（リトライ0）。デザインは美しい（ダークテーマ）が、リアルタイム更新テストが未通過
 - **DeepSeek-V4-Flash IQ2XXS** は158Bパラメータの大規模モデルだが、2bit量子化により性能劣化。ビルドは成功するが認証・API連携が正しく動作せず25点止まり
 - **qwen3-coder:30b** はビルド・ログインまで通るが、フレンド/DM/RTのUI実装が不完全。コーディング特化モデルでもフルスタックアプリ生成は難しい
