@@ -1131,6 +1131,71 @@ cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 \
 
 ---
 
+### llm-jp-4-32b-a3b-thinking (NEW!) - A100 80GB ×1
+
+国立情報学研究所 LLM-jp チームの **Apache 2.0** ライセンスの 32.1B params / 3.8B active MoE thinking モデル ([llm-jp/llm-jp-4-32b-a3b-thinking](https://huggingface.co/llm-jp/llm-jp-4-32b-a3b-thinking))。`qwen3moe` アーキテクチャ + OpenAI Harmony 互換 chat template。Q4_K_M GGUF ([alfredplpl/llm-jp-4-32b-a3b-thinking-gguf](https://huggingface.co/alfredplpl/llm-jp-4-32b-a3b-thinking-gguf)、19.9GB) を A100 80GB ×1 で動作。
+
+#### 要約 (ROUGE) ベンチマーク - 20 sample
+
+| Metric | 値 |
+|---|---|
+| ROUGE-1 / 2 / **L** | 0.531 / 0.236 / **0.237** |
+| 速度 (gen) | **161 tok/s** |
+| 平均 sample 時間 | 6.0秒 |
+| 完走 | 20/20 |
+
+#### コーディング (React chat app) ベンチマーク
+
+| Metric | 値 |
+|---|---|
+| **Total** | **25/100** |
+| Functional | 25/80 (Build OK のみ得点、Login/Friend/DM/RT は不達) |
+| Visual | 0/20 (skip) |
+| 1次生成 | 18,946 chars in 39.9s @ **175 tok/s**、13 files |
+| 総時間 (10 retry含む) | **424秒 (7分)** |
+| 速度 | DeepSeek-V4-Flash A100 (148分) の **約20倍速い** |
+
+**評価**:
+- ✅ Apache 2.0、商用利用可
+- ✅ 32.1B params / 3.8B active = 推論時VRAM 13GB程度で動作 (1×A100で十分)
+- ✅ 161-175 tok/s の高速生成 (Mac Studio の qwen3.6:35b-a3b-coding 73 tok/s より速い)
+- ✅ Reasoning: medium で高品質な分析過程を出力 (英語で考えて日本語で答える、内部 reasoning 経路)
+- ⚠️ ROUGE-L 0.237 は中位 (V4-Flash A100 0.234 と同範囲、Qwen3.5-9B 0.492 より低い)
+- ⚠️ Coding bench 25/100 (Build成功するが Express + Vite frontend の起動が10 retry中一度も成功せず)
+- ⚠️ thinking が長く出力上限に達して final 章節に到達しないサンプルあり (要約で sample 16, 17 等 ROUGE-L 0.05 前後)
+
+**注意点 (環境構築)**:
+- 標準 llama.cpp (b1-beb42ff 以降) でビルドして使うこと。**[PR#22378 (DeepSeek-V4 fork)](https://github.com/ggml-org/llama.cpp/pull/22378) のビルドでは degenerate な無限ループ出力**になる (qwen3moe builder の Harmony token 互換性不足)
+- llama.cpp の `--jinja` chat template は thinking 出力に `<|channel|> analysis<|message|>` (スペース有り) を含むため、サーバ側 Harmony parser が **500エラー**で失敗。**`/completion` エンドポイント + 手動 Harmony format prompt + `stop=["<|return|>"]`** で回避必要
+- 出力の `<|channel|>final<|message|>...` 章節を抽出して評価する必要あり
+
+**動作方法**:
+```bash
+# 標準 llama.cpp HEAD をビルド (CUDA, sm_80)
+git clone --depth 1 https://github.com/ggml-org/llama.cpp.git && cd llama.cpp
+cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80 \
+  && cmake --build build -j$(nproc)
+
+# Q4_K_M GGUF を取得 (19.9GB)
+hf download alfredplpl/llm-jp-4-32b-a3b-thinking-gguf \
+  llm-jp-4-32B-a3B-thinking-Q4_K_M.gguf --local-dir ./models
+
+# サーバ起動
+./build/bin/llama-server \
+  -m ./models/llm-jp-4-32B-a3B-thinking-Q4_K_M.gguf \
+  -ngl 99 -c 32768 -fa auto --jinja \
+  --host 0.0.0.0 --port 8080
+
+# /completion へ Harmony プロンプトを直接送る (chat-completions endpoint は parser bug で 500)
+curl http://localhost:8080/completion -H "Content-Type: application/json" -d '{
+  "prompt": "<|start|>user<|message|>17×23を計算してください。<|end|><|start|>assistant",
+  "n_predict": 2000, "temperature": 0.3,
+  "stop": ["<|return|>"]
+}'
+```
+
+---
+
 ### gemma4-31B-Opus (NEW!) - A100 80GB
 - **ROUGE-L**: 0.401 | **Speed**: 27.8 tok/s | **Size**: 18.7GB (Q4_K_M)
 
