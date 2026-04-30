@@ -659,7 +659,7 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
 | qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
-| DeepSeek-V4-Flash IQ2XXS | 1512s | 5 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
+| DeepSeek-V4-Flash IQ2XXS | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | Qwopus3.5-9B | 5050s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | codestral:22b | 107s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | gemma4:e4b | 937s | 10 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
@@ -698,24 +698,29 @@ Mac Studio M3 Ultra (512GB) + Ollama v0.22.0 でテスト。**機能テスト満
 
 ---
 
-#### DeepSeek-V4-Flash IQ2XXS（25点 / リトライ5回）
+#### DeepSeek-V4-Flash IQ2XXS（55点 / リトライ5回）
 
-Mac Studio M3 Ultra (512GB) + [antirez/llama.cpp fork](https://github.com/antirez/llama.cpp) でテスト。158Bパラメータ（13Bアクティブ）のMoEモデルを2bit量子化（81GB）で動作。
+Mac Studio M3 Ultra (512GB) + [antirez/llama.cpp fork](https://github.com/antirez/llama.cpp-deepseek-v4-flash) でテスト。158Bパラメータ（13Bアクティブ）のMoEモデルを2bit量子化（81GB）で動作。
 
 | 項目 | 結果 |
 |---|---|
-| 生成時間 | 1512秒（約25分） |
-| 生成速度 | 20.2 tok/s |
+| 生成時間 | 1879秒（約31分） |
+| 生成速度 | 21.2 tok/s |
 | リトライ | 5回 |
-| 機能スコア | 25/80 |
+| 機能スコア | 55/80 |
 
 - ✅ ビルド成功
-- ❌ ログイン/サインアップ
-- ❌ フレンドフォロー/解除
-- ❌ DM送受信
-- ❌ リアルタイム更新
+- ✅ ログイン/サインアップ
+- ✅ フレンドフォロー/解除
+- ✅ DM送受信
+- ❌ リアルタイム更新（2秒ポーリング未実装）
 
-**評価**: DeepSeek-V4-Flashは158Bパラメータの大規模モデルだが、IQ2XXS（約2bit）の極端な量子化により、コード生成品質が大幅に低下。Reactアプリの骨格は生成できるが、認証やAPI連携の実装に課題。Q4_K_M量子化版はantirez forkと非互換のため未テスト。
+**評価**: DeepSeek-V4-Flashは158Bパラメータの大規模モデル。IQ2XXS（約2bit）の極端な量子化でも基本的な認証・フレンド・DMは動作。しかしリアルタイム更新（ポーリング機能）が正しく実装されないため80点には到達せず。
+
+**他の量子化オプションの検証結果**:
+- Q4_K_M (111GB): antirez fork、標準llama.cppともに読み込み不可（メタデータ欠落）
+- MLX 4bit (151GB): モデル読み込み可、短文生成可、長文プロンプトでクラッシュ
+- MLX 8bit (302GB): 同上（MLX-LMのDeepSeek-V4サポートはPRオープン中、未安定）
 
 **動作方法（antirez fork）**:
 ```bash
