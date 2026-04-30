@@ -897,7 +897,30 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 | Model | Size | 速度 | 機能 | TOTAL | 備考 |
 |---|---:|---:|---:|---:|---|
 | 🥇 **qwen3.6:35b-a3b-coding-mxfp8** | 37GB | 73.3 tok/s | **80/80** | **80/100** | Ollama v0.22.0、初回成功 |
-| DeepSeek-V4-Flash IQ2XXS | 81GB | 20.2 tok/s | 25/80 | 25/100 | antirez fork、5リトライ |
+| DeepSeek-V4-Flash IQ2XXS | 81GB | 21.2 tok/s | 55/80 | 55/100 | antirez fork、5リトライ |
+| 🆕 Ling-2.6-flash MLX 4bit | 65GB | 56.6 tok/s | -- | -- | MLX PR#1227、コード生成成功 |
+
+### Ling-2.6-flash MLX 4bit
+
+[inclusionAI/Ling-2.6-flash](https://huggingface.co/inclusionAI/Ling-2.6-flash)（104Bパラメータ、7.4B active）をMLXで動作テスト。
+
+| 項目 | 結果 |
+|---|---|
+| モデル | mlx-community/Ling-2.6-flash-mlx-4bit-gs32 |
+| サイズ | 65GB |
+| 生成速度 | 56.6 tok/s |
+| コード生成 | 120秒で7ファイル生成 |
+
+**セットアップ**:
+```bash
+# mlx-lm PR#1227からインストール（bailing_hybridサポート）
+pip install git+https://github.com/ivanfioravanti/mlx-lm.git@add-ling-2.6-flash
+
+# サーバー起動
+python -m mlx_lm.server --model mlx-community/Ling-2.6-flash-mlx-4bit-gs32 --port 8080
+```
+
+**評価**: Ling-2.6-flashは104Bパラメータ（7.4B active）のMoEモデル。bailing_hybridアーキテクチャはmlx-lm本体では未サポートだが、PR#1227ブランチで動作確認。56.6 tok/sは同サイズのDeepSeek-V4-Flash（21.2 tok/s）の約2.7倍高速。
 
 ## 要約ベンチマーク (Mac Studio M3 Ultra 512GB, Ollama, n=10)
 
