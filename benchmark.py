@@ -181,7 +181,43 @@ def generate_summary(model: str, text: str, max_tokens: int = None, ollama_host:
         if max_tokens is not None:
             options['num_predict'] = max_tokens
 
-        # Handle host with or without port
+        # Handle host with or without port; route non-11434 ports to llama.cpp /v1/chat/completions
+        is_llama_cpp = ':' in ollama_host and not ollama_host.endswith(':11434')
+        if is_llama_cpp:
+            # Use /completion (raw prompt) to avoid jinja template parser bugs in PR#22378
+            api_url = f'http://{ollama_host}/completion'
+            wrapped = (
+                '<｜begin▁of▁sentence｜><｜User｜>'
+                + prompt
+                + '<｜Assistant｜></think>'
+            )
+            data = None
+            for attempt in range(3):
+                try:
+                    response = requests.post(
+                        api_url,
+                        json={
+                            'prompt': wrapped,
+                            'n_predict': options.get('num_predict', 512),
+                            'temperature': options.get('temperature', 0.3),
+                            'stop': ['<｜end▁of▁sentence｜>', '<｜User｜>'],
+                        },
+                        timeout=3600,
+                    )
+                    data = response.json()
+                    if response.status_code == 200 and data.get('content'):
+                        break
+                except Exception as e:
+                    data = {'error': str(e)}
+                time.sleep(2)
+            elapsed = time.time() - start_time
+            output = (data or {}).get('content', '') or ''
+            eval_count = (data or {}).get('tokens_predicted', len(output))
+            tokens_per_sec = eval_count / elapsed if elapsed > 0 else 0
+            if '</think>' in output:
+                output = output.split('</think>')[-1].strip()
+            return output.strip(), elapsed, tokens_per_sec, eval_count
+
         if ':' in ollama_host:
             api_url = f'http://{ollama_host}/api/generate'
         else:

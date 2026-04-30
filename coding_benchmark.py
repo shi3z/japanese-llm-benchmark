@@ -89,27 +89,56 @@ def get_coding_model_options(model: str) -> dict:
 
 
 def _call_llama_cpp(api_url: str, prompt: str) -> tuple:
-    """Call llama.cpp /v1/chat/completions endpoint (OpenAI compatible)."""
+    """Call llama.cpp /completion with stream=true to bypass non-stream JSON UTF-8 bug.
+
+    Wraps the user prompt with DeepSeek-V4 chat tokens so the same code path
+    works against bare /completion endpoints serving deepseek_v4 GGUFs (e.g.
+    PR#22378 fork). Streaming chunks let us capture partial output even when
+    the server hits the broken-UTF-8 serialization bug.
+    """
+    wrapped = (
+        '<｜begin▁of▁sentence｜><｜User｜>' + prompt + '<｜Assistant｜></think>'
+    )
     start_time = time.time()
+    output_chunks = []
+    tokens = 0
     try:
-        response = requests.post(
-            f'{api_url}/v1/chat/completions',
+        with requests.post(
+            f'{api_url}/completion',
             json={
-                'messages': [{'role': 'user', 'content': prompt}],
-                'max_tokens': 65536,
+                'prompt': wrapped,
+                'n_predict': 16384,
                 'temperature': 0.3,
+                'stop': ['<｜end▁of▁sentence｜>', '<｜User｜>'],
+                'stream': True,
             },
-            timeout=1800,
-        )
-        data = response.json()
+            timeout=86400,
+            stream=True,
+        ) as response:
+            for line in response.iter_lines(decode_unicode=True):
+                if not line or not line.startswith('data: '):
+                    continue
+                payload = line[6:].strip()
+                if not payload or payload == '[DONE]':
+                    continue
+                try:
+                    chunk = json.loads(payload)
+                except Exception:
+                    continue
+                output_chunks.append(chunk.get('content', '') or '')
+                tokens = chunk.get('tokens_predicted', tokens)
+                if chunk.get('stop'):
+                    break
         elapsed = time.time() - start_time
-        output = data.get('choices', [{}])[0].get('message', {}).get('content', '') or ''
-        usage = data.get('usage', {})
-        tokens = usage.get('completion_tokens', len(output))
+        output = ''.join(output_chunks)
         tps = tokens / elapsed if elapsed > 0 else 0
         return output.strip(), elapsed, tps
     except Exception as e:
-        return f'Error: {str(e)}', time.time() - start_time, 0
+        elapsed = time.time() - start_time
+        partial = ''.join(output_chunks)
+        if partial:
+            return partial.strip(), elapsed, tokens / elapsed if elapsed > 0 else 0
+        return f'Error: {str(e)}', elapsed, 0
 
 
 def _call_mlx(api_url: str, prompt: str) -> tuple:
