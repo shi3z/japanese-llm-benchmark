@@ -1039,6 +1039,98 @@ A: {"keywords": ["CNN", "RNN", "違い"]}
 
 ---
 
+### DeepSeek-V4-Flash MXFP4_MOE - A100 80GB ×3 / DGX Spark (Blackwell GB10)
+
+DeepSeek-V4-Flash（284B params / 13B active MoE、43層、HCA hybrid attention）を MXFP4_MOE GGUF（140GB、`lovedheart/DeepSeek-V4-Flash-GGUF`）で動作させた検証結果。`llama.cpp` 本体は未マージのため [PR#22378 (nisparks fork)](https://github.com/ggml-org/llama.cpp/pull/22378) を自前ビルドして使用。
+
+#### A100 80GB × 3 (Ampere sm_80, 3-way tensor split, llama.cpp PR#22378)
+
+| Metric | 値 |
+|---|---|
+| 起動構成 | `-ngl 99 -c 16384 -fa auto --cache-ram 0 --no-cache-prompt -np 1 --no-jinja` |
+| 速度 (gen) | 22 tok/s |
+| 速度 (prefill) | 23 tok/s（HCA prefill 未最適化） |
+| ROUGE-1 / 2 / **L** (20 sample) | 0.509 / 0.221 / **0.234** |
+| ROUGE-L（有効18件のみ）| 0.260 |
+| 空応答失敗率 | 2/20 (10%) |
+| Coding bench | **25/100** (10 retry, build OK のみ得点) |
+
+**問題点（A100特有）**:
+- A100 (sm_80) は FP4/FP8 native MMA 命令を持たず、PR#22378 が dequant→BF16 emulation 経路を辿る
+- 出力に **broken UTF-8 byte（U+FFFD）が混入** し、長い日本語生成で `応用` → `応`、`市民参加` → `市民参` のように 3-byte UTF-8 文字の途中バイトが落ちる
+- llama-server の non-stream JSON serializer がこの broken byte を含む応答で 500 エラーを返し、要約タスクで時々 0 トークン応答になる
+- ROUGE-L 0.234 は **下限値**（broken byte によりスコアが押し下げられている）
+
+#### DGX Spark (NVIDIA GB10, Blackwell sm_120, native MXFP4)
+
+DGX Spark は **GB10 (Blackwell) + 119GB unified memory + aarch64**。BLACKWELL_NATIVE_FP4 経路で動かすことで broken UTF-8 byte 問題が大幅に軽減することを確認。
+
+| Metric | 値 |
+|---|---|
+| 起動構成 | `-ngl 0 -c 8192 --cache-ram 0 --no-jinja --no-context-shift` (140GB GGUF を mmap、unified memory < モデルサイズ) |
+| 速度 (gen) | **1.3 tok/s**（unified memory 不足で disk mmap 律速） |
+| 速度 (prefill) | ~1 tok/s |
+| ROUGE-1 / 2 / **L** (5 sample) | 0.623 / 0.338 / **0.302** |
+| 空応答失敗率 | **0/5 (0%)** |
+| Coding bench | 0/100 (1 retry; build OK だが server starts NG) |
+
+**A100 → Spark の品質差**:
+
+| Metric | A100 (broken UTF-8) | DGX Spark (native MXFP4) | 改善 |
+|---|---|---|---|
+| ROUGE-L | 0.234 / (0.260) | **0.302** | +29% / (+16%) |
+| ROUGE-1 | 0.509 | **0.623** | +22% |
+| ROUGE-2 | 0.221 | **0.338** | +52% |
+| 空応答失敗 | 2/20 | **0/5** | 解消 |
+
+**注意点（Spark 特有）**:
+- **GB10 unified memory 119GB < モデル 140GB**。`-ngl > 0`（部分 GPU 配置）を試みると warmup 時の cuda graph 確保で OOM、結果サーバが ggml_abort
+- 唯一安定動作するのは `-ngl 0`（全層 mmap、disk から demand-paging）
+- Disk read が律速で gen 1.3 tok/s。20 サンプルベンチに 27時間かかる試算のため 5 サンプルで打ち切り
+- **要約タスク（短文生成）では broken byte ほぼ出ない**。一方 8000+ token を吐く coding bench では Spark でも稀に broken byte → 500 エラー発生。本リポでは `_call_llama_cpp` を **stream=true** に書き換えて partial output を救出する形で回避
+
+**結論**:
+- V4-Flash の真の品質値は ROUGE-L **0.30 前後**（A100 で観測された 0.23 はインフラ不具合での下振れ）
+- それでも RTX 5090 の Qwopus3.5-9B (0.533) や Qwen3.5-9B (0.492) には届かず
+- 「Flash 13B-active MoE は既存 9B-class モデル群を超える知能を発揮しない」が現時点の判定
+- **公式 inference (`inference/generate.py` + tilelang FP8 GEMM) は A100 では sm_89+ 専用の CUTLASS 命令で動作不可**、DGX Spark でも 158GB FP8 がメモリに乗らず、現状 A100/Spark での "公式品質" 評価は不可能
+
+**動作方法 (A100)**:
+```bash
+# llama.cpp PR#22378 fork をビルド (CUDA, sm_80)
+git clone --depth 1 -b wip/deepseek-v4-support \
+  https://github.com/nisparks/llama.cpp.git llama-cpp-deepseek-v4
+cd llama-cpp-deepseek-v4 && cmake -B build -DGGML_CUDA=ON \
+  -DCMAKE_CUDA_ARCHITECTURES=80 && cmake --build build -j$(nproc)
+
+# MXFP4_MOE GGUF を取得 (140GB)
+hf download lovedheart/DeepSeek-V4-Flash-GGUF \
+  DeepSeek-V4-Flash-MXFP4_MOE.gguf --local-dir ./models
+
+# 3 GPUに tensor split で起動
+CUDA_VISIBLE_DEVICES=0,1,2 ./build/bin/llama-server \
+  -m ./models/DeepSeek-V4-Flash-MXFP4_MOE.gguf \
+  -ngl 99 -c 16384 -fa auto \
+  --cache-ram 0 --no-cache-prompt -np 1 --no-jinja \
+  --host 0.0.0.0 --port 18091
+```
+
+**動作方法 (DGX Spark)**:
+```bash
+# 同じ PR#22378 fork を aarch64 + sm_120 でビルド
+cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 \
+  && cmake --build build -j$(nproc)
+
+# DGX Spark の場合は -ngl 0（全mmap）が必須
+./build/bin/llama-server \
+  -m ./models/DeepSeek-V4-Flash-MXFP4_MOE.gguf \
+  -ngl 0 -c 8192 -fit off --no-warmup \
+  --cache-ram 0 --no-cache-prompt -np 1 --no-jinja \
+  --host 0.0.0.0 --port 18091
+```
+
+---
+
 ### gemma4-31B-Opus (NEW!) - A100 80GB
 - **ROUGE-L**: 0.401 | **Speed**: 27.8 tok/s | **Size**: 18.7GB (Q4_K_M)
 
