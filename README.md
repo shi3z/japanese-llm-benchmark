@@ -678,6 +678,7 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | Model | 生成時間 | リトライ | Build | Login | Friend | DM | RT | 機能 | TOTAL |
 |---|---:|---:|---|---|---|---|---|---:|---:|
 | **qwen3.6:35b-a3b-coding-mxfp8** | 148s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
+| **qwen3.6:27b** (RTX 5090) | 2678s | 2 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
 | **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
 | 🆕 Ling-2.6-flash MLX 4bit | 120s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | DeepSeek-V4-Flash IQ2XXS | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
@@ -699,6 +700,34 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 > ⚠️ Tesla V100 32GB x4 + transformers環境でのコード生成のみ。Docker未インストールのため機能テスト未実施。全7ファイルが正しく生成されたことを確認。
 
 ### 新規テスト結果 (2026年4月)
+
+#### qwen3.6:27b（80点 / リトライ2回）🥇 - RTX 5090
+
+RTX 5090 (32GB) + Ollama 0.20.0 でテスト。**機能テスト満点 (80/80)** を3回目の生成で達成。
+
+| 項目 | 結果 |
+|---|---|
+| 生成時間 | 2678秒（約45分、3回合計） |
+| 生成速度 | 10.3 tok/s |
+| リトライ | 2回 |
+| 機能スコア | **80/80（満点）** |
+| Total | **80/100**（visual評価は anthropic SDK 未インストールのためスキップ） |
+
+- ✅ ビルド成功
+- ✅ ログイン/サインアップ
+- ✅ フレンドフォロー/解除
+- ✅ DM送受信
+- ✅ リアルタイム更新（2秒ポーリング）
+
+**評価**: Qwen3.6 の 27B 通常版が、RTX 5090 単体で `qwen3.6:35b-a3b-coding-mxfp8` (Mac Studio M3 Ultra) と同点の機能満点を達成。リトライ1回目はリアルタイム更新テスト失敗 (65/80)、2回目で逆に55/80に低下、3回目で80/80を達成。Ollama API 経由で動作するため、追加のllama.cpp構築不要。
+
+##### スクリーンショット (qwen3.6:27b - RTX 5090)
+
+| ログイン | フレンド | DM | チャット |
+|---|---|---|---|
+| ![login](coding_benchmark_screenshots/qwen3_6_27b/login.png) | ![friends](coding_benchmark_screenshots/qwen3_6_27b/friends.png) | ![dm](coding_benchmark_screenshots/qwen3_6_27b/dm.png) | ![chat](coding_benchmark_screenshots/qwen3_6_27b/chat.png) |
+
+---
 
 #### qwen3.6:35b-a3b-coding-mxfp8（80点 / リトライ0回）🥇
 

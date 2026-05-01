@@ -1,0 +1,40 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "qwen3.6:27b",
+      "generation_time": 2678.481770992279,
+      "tokens_per_second": 10.290455248232847,
+      "raw_output_length": 20028,
+      "files_generated": 6,
+      "build_success": true,
+      "server_starts": true,
+      "test_login": true,
+      "test_friends": true,
+      "test_messaging": true,
+      "test_realtime": true,
+      "retry_count": 2,
+      "max_retries": 10,
+      "functional_score": 80.0,
+      "visual_scores": {
+        "layout": 0,
+        "aesthetics": 0,
+        "usability": 0,
+        "completeness": 0,
+        "uniqueness": 0,
+        "overall": 0,
+        "comment": "Error: No module named 'anthropic'"
+      },
+      "visual_score": 0.0,
+      "total_score": 80.0,
+      "screenshots": {
+        "login": "/home/babyjam/japanese-llm-benchmark/coding_benchmark_screenshots/qwen3_6_27b/login.png",
+        "friends": "/home/babyjam/japanese-llm-benchmark/coding_benchmark_screenshots/qwen3_6_27b/friends.png",
+        "dm": "/home/babyjam/japanese-llm-benchmark/coding_benchmark_screenshots/qwen3_6_27b/dm.png",
+        "chat": "/home/babyjam/japanese-llm-benchmark/coding_benchmark_screenshots/qwen3_6_27b/chat.png"
+      },
+      "error_log": ""
+    }
+  ]
+}

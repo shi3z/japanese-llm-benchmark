@@ -169,7 +169,7 @@ def _call_ollama(api_url: str, model: str, prompt: str) -> tuple:
         response = requests.post(
             f'{api_url}/api/generate',
             json={'model': model, 'prompt': prompt, 'stream': False, 'options': options},
-            timeout=600,
+            timeout=3600,
         )
         data = response.json()
         elapsed = time.time() - start_time
