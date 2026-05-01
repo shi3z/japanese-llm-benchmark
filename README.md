@@ -1217,6 +1217,64 @@ curl http://localhost:8080/completion -H "Content-Type: application/json" -d '{
 
 ---
 
+### Qwen3.5-9B-DeepSeek-V4-Flash (蒸留, NEW!) - A100 80GB ×1
+
+[Jackrong/Qwen3.5-9B-DeepSeek-V4-Flash](https://huggingface.co/Jackrong/Qwen3.5-9B-DeepSeek-V4-Flash-GGUF) は **Qwen3.5-9B をベースに DeepSeek-V4-Flash の reasoning trace で SFT (Unsloth、8000 サンプル distillation)** された **Apache 2.0** ライセンス 9B reasoning モデル。`qwen35` アーキテクチャ、ChatML format、Long-CoT 思考過程を出力する。Q4_K_M GGUF (5.6GB) を A100 80GB ×1 で動作。
+
+#### 要約 (ROUGE) ベンチマーク - 20 sample
+
+| Metric | 値 |
+|---|---|
+| ROUGE-1 / 2 / **L** | 0.460 / 0.210 / **0.212** |
+| 速度 (gen) | 118 tok/s |
+| 平均 sample 時間 | 97秒 (max_tokens 16384) |
+| 完走 | 20/20 (うち 4件は thinking が 16k token 全消費で content 空 → 0点) |
+
+#### コーディング (React chat app) ベンチマーク
+
+| Metric | 値 |
+|---|---|
+| **Total** | **25/100** |
+| Functional | 25/80 (Build OK + **Server起動成功**、Login/Friend/DM/RT は不達) |
+| Visual | 0/20 (skip) |
+| 1次生成 | 0 chars (思考が 32k token 全消費して content 出ず) |
+| 最高ファイル数 | 14 files (retry 5, 10) |
+| 総時間 (10 retry含む) | **22分 (1330秒)** |
+
+**評価**:
+- ✅ Apache 2.0、9B 軽量、A100 1枚で十分動作 (5.6GB Q4_K_M)
+- ✅ chat-completions endpoint がそのまま動く (DeepSeek-V4 系と違い 500 バグなし)
+- ✅ **Coding bench で Server起動成功** (V4-Flash 本家 / llm-jp-4 は build OK のみ、frontend起動失敗) → distillation の恩恵で frontend 構造を正しく組める
+- ⚠️ ROUGE-L 0.212 はベース Qwen3.5-9B (0.492) から **大きく低下** — DeepSeek-V4 思考スタイルへの SFT で要約タスク向け簡潔出力能力が損なわれた
+- ⚠️ Long-CoT で 16k+ token を平気で消費する。max_tokens 設定要注意 (4096 だと content 空になる)
+- ⚠️ Login/Friend/DM 全テスト未通過は 25/100 の天井組と同じ (V4-Flash A100、llm-jp-4 と同点)
+
+**動作方法**:
+```bash
+# 標準 llama.cpp HEAD (qwen35 + reasoning パーサ対応版)
+git clone --depth 1 https://github.com/ggml-org/llama.cpp.git && cd llama.cpp
+cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80 \
+  && cmake --build build -j$(nproc)
+
+# Q4_K_M GGUF を取得 (5.6GB)
+hf download Jackrong/Qwen3.5-9B-DeepSeek-V4-Flash-GGUF \
+  Qwen3.5-9B-DeepSeek-V4-Flash-Q4_K_M.gguf --local-dir ./models
+
+# サーバ起動 (推奨: temperature=0.6, top_p=0.95)
+./build/bin/llama-server \
+  -m ./models/Qwen3.5-9B-DeepSeek-V4-Flash-Q4_K_M.gguf \
+  -ngl 99 -c 32768 -fa auto --jinja \
+  --host 0.0.0.0 --port 8080
+
+# /v1/chat/completions が普通に動く (max_tokens は 8192 以上推奨)
+curl http://localhost:8080/v1/chat/completions -H 'Content-Type: application/json' -d '{
+  "messages": [{"role":"user","content":"17×23を計算してください"}],
+  "max_tokens": 16384, "temperature": 0.6, "top_p": 0.95
+}'
+```
+
+---
+
 ### gemma4-31B-Opus (NEW!) - A100 80GB
 - **ROUGE-L**: 0.401 | **Speed**: 27.8 tok/s | **Size**: 18.7GB (Q4_K_M)
 
