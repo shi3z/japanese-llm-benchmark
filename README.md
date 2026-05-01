@@ -761,6 +761,14 @@ Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論。機能点80/80で全�
 |---|
 | ![login](coding_benchmark_screenshots/qwen3_6_35b-a3b/login.png) |
 
+#### Ling-2.6-flash MLX 4bit（55点 / リトライ0回）🆕
+
+104Bパラメータ（7.4B active）のMoEモデル。MLX PR#1227で動作。56.6 tok/sで最速の55点達成。
+
+| ログイン | フレンド | DM | チャット |
+|---|---|---|---|
+| ![login](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/login.png) | ![friends](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/friends.png) | ![dm](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/dm.png) | ![chat](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/chat.png) |
+
 #### Qwopus3.5-9B（25点 / リトライ10回）
 
 | ログイン（美しいUIだがAPIが仕様と不一致） |
