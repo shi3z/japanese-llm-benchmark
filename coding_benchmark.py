@@ -142,17 +142,21 @@ def _call_llama_cpp(api_url: str, prompt: str) -> tuple:
 
 
 def _call_mlx(api_url: str, prompt: str) -> tuple:
-    """Call MLX /v1/completions endpoint."""
+    """Call MLX /v1/chat/completions endpoint."""
     start_time = time.time()
     try:
         response = requests.post(
-            f'{api_url}/v1/completions',
-            json={'prompt': prompt, 'max_tokens': 65536, 'temperature': 0.3},
+            f'{api_url}/v1/chat/completions',
+            json={
+                'messages': [{'role': 'user', 'content': prompt}],
+                'max_tokens': 65536,
+                'temperature': 0.3
+            },
             timeout=1800,
         )
         data = response.json()
         elapsed = time.time() - start_time
-        output = data.get('choices', [{}])[0].get('text', '') or ''
+        output = data.get('choices', [{}])[0].get('message', {}).get('content', '') or ''
         usage = data.get('usage', {})
         tokens = usage.get('completion_tokens', len(output))
         tps = tokens / elapsed if elapsed > 0 else 0
@@ -194,17 +198,17 @@ def _clean_thinking(output: str) -> str:
 def _detect_server_type(api_url: str) -> str:
     """Detect server type by checking available endpoints."""
     try:
-        # Check if llama.cpp (supports /v1/chat/completions)
+        # Check if llama.cpp (has /completion endpoint)
         r = requests.post(
-            f'{api_url}/v1/chat/completions',
-            json={'messages': [{'role': 'user', 'content': 'test'}], 'max_tokens': 1},
+            f'{api_url}/completion',
+            json={'prompt': 'test', 'n_predict': 1},
             timeout=10,
         )
         if r.ok:
             return 'llama_cpp'
     except:
         pass
-    # Fall back to MLX (only supports /v1/completions)
+    # Fall back to MLX (uses /v1/completions)
     return 'mlx'
 
 

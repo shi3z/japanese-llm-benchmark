@@ -680,7 +680,7 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | **qwen3.6:35b-a3b-coding-mxfp8** | 148s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
 | **qwen3.6:27b** (RTX 5090) | 2678s | 2 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
 | **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
-| 🆕 Ling-2.6-flash MLX 4bit | 120s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
+| Ling-2.6-flash MLX 4bit | 1612s | 3 | OK | -- | OK | OK | -- | 45/80 | 45/100 |
 | DeepSeek-V4-Flash IQ2XXS | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
@@ -812,13 +812,13 @@ Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論。機能点80/80で全�
 |---|
 | ![login](coding_benchmark_screenshots/qwen3_6_35b-a3b/login.png) |
 
-#### Ling-2.6-flash MLX 4bit（55点 / リトライ0回）🆕
+#### Ling-2.6-flash MLX 4bit（45点 / リトライ3回）
 
-104Bパラメータ（7.4B active）のMoEモデル。MLX PR#1227で動作。56.6 tok/sで最速の55点達成。
+104Bパラメータ（7.4B active）のMoEモデル。MLX PR#1227で動作。バックエンドAPIは正常動作するが、フロントエンドでReact依存関係エラーが発生。
 
-| ログイン | フレンド | DM | チャット |
+| ログイン（React依存エラー） | フレンド（React依存エラー） | DM（React依存エラー） | チャット（React依存エラー） |
 |---|---|---|---|
-| ![login](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/login.png) | ![friends](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/friends.png) | ![dm](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/dm.png) | ![chat](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/chat.png) |
+| ![login](coding_benchmark_screenshots/Ling-2_6-flash-mlx/login.png) | ![friends](coding_benchmark_screenshots/Ling-2_6-flash-mlx/friends.png) | ![dm](coding_benchmark_screenshots/Ling-2_6-flash-mlx/dm.png) | ![chat](coding_benchmark_screenshots/Ling-2_6-flash-mlx/chat.png) |
 
 #### Qwopus3.5-9B（25点 / リトライ10回）
 
@@ -958,7 +958,7 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 |---|---:|---:|---:|---:|---|
 | 🥇 **qwen3.6:35b-a3b-coding-mxfp8** | 37GB | 73.3 tok/s | **80/80** | **80/100** | Ollama v0.22.0、初回成功 |
 | DeepSeek-V4-Flash IQ2XXS | 81GB | 21.2 tok/s | 55/80 | 55/100 | antirez fork、5リトライ |
-| 🆕 Ling-2.6-flash MLX 4bit | 65GB | 56.6 tok/s | 55/80 | 55/100 | MLX PR#1227、初回成功 |
+| Ling-2.6-flash MLX 4bit | 65GB | 56.3 tok/s | 45/80 | 45/100 | MLX PR#1227、3リトライ |
 
 ### Ling-2.6-flash MLX 4bit
 
@@ -968,20 +968,20 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 |---|---|
 | モデル | mlx-community/Ling-2.6-flash-mlx-4bit-gs32 |
 | サイズ | 65GB |
-| 生成速度 | 56.6 tok/s |
-| 生成時間 | 120秒（7ファイル） |
-| リトライ | 0回（初回成功） |
-| 機能スコア | 55/80 |
+| 生成速度 | 56.3 tok/s |
+| 生成時間 | 1612秒（リトライ含む） |
+| リトライ | 3回 |
+| 機能スコア | 45/80 |
 
 - ✅ ビルド成功
-- ✅ ログイン/サインアップ（API）
+- ❌ ログイン/サインアップ（React依存エラー）
 - ✅ フレンドフォロー/解除（API）
 - ✅ DM送受信（API）
 - ❌ リアルタイム更新
 
-| ログイン | フレンド | DM | チャット |
+| ログイン（React依存エラー） | フレンド（React依存エラー） | DM（React依存エラー） | チャット（React依存エラー） |
 |---|---|---|---|
-| ![login](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/login.png) | ![friends](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/friends.png) | ![dm](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/dm.png) | ![chat](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/chat.png) |
+| ![login](coding_benchmark_screenshots/Ling-2_6-flash-mlx/login.png) | ![friends](coding_benchmark_screenshots/Ling-2_6-flash-mlx/friends.png) | ![dm](coding_benchmark_screenshots/Ling-2_6-flash-mlx/dm.png) | ![chat](coding_benchmark_screenshots/Ling-2_6-flash-mlx/chat.png) |
 
 **セットアップ**:
 ```bash
@@ -992,7 +992,7 @@ pip install git+https://github.com/ivanfioravanti/mlx-lm.git@add-ling-2.6-flash
 python -m mlx_lm.server --model mlx-community/Ling-2.6-flash-mlx-4bit-gs32 --port 8080
 ```
 
-**評価**: Ling-2.6-flashは104Bパラメータ（7.4B active）のMoEモデル。bailing_hybridアーキテクチャはmlx-lm本体では未サポートだが、PR#1227ブランチで動作確認。56.6 tok/sは同サイズのDeepSeek-V4-Flash（21.2 tok/s）の約2.7倍高速。
+**評価**: Ling-2.6-flashは104Bパラメータ（7.4B active）のMoEモデル。bailing_hybridアーキテクチャはmlx-lm本体では未サポートだが、PR#1227ブランチで動作確認。バックエンドAPIは正常に生成されるが、フロントエンドでReact/React-DOM依存関係が欠落し、「Failed to resolve import 'react/jsx-dev-runtime'」エラーが発生。56.3 tok/sはDeepSeek-V4-Flash（21.2 tok/s）の約2.7倍高速だが、コード品質に課題あり。
 
 ## 要約ベンチマーク (Mac Studio M3 Ultra 512GB, Ollama, n=10)
 
