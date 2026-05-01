@@ -657,6 +657,7 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 |---|---:|---:|---|---|---|---|---|---:|---:|
 | **qwen3.6:35b-a3b-coding-mxfp8** | 148s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
 | **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
+| 🆕 Ling-2.6-flash MLX 4bit | 120s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | DeepSeek-V4-Flash IQ2XXS | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
