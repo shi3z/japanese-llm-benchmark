@@ -1,0 +1,37 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "llm-jp-4-32B-a3B-thinking-Q4_K_M",
+      "generation_time": 832.8214948177338,
+      "tokens_per_second": 83.54109649768394,
+      "raw_output_length": 26146,
+      "files_generated": 3,
+      "build_success": false,
+      "server_starts": false,
+      "test_login": false,
+      "test_friends": false,
+      "test_messaging": false,
+      "test_realtime": false,
+      "retry_count": 5,
+      "max_retries": 5,
+      "functional_score": 25.0,
+      "visual_scores": {
+        "layout": 0,
+        "aesthetics": 0,
+        "usability": 0,
+        "completeness": 0,
+        "uniqueness": 0,
+        "overall": 0,
+        "comment": "Error: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CabtXFoQuYGQ1V4WpDbkf'}"
+      },
+      "visual_score": 0.0,
+      "total_score": 25.0,
+      "screenshots": {
+        "login": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q4_K_M/login.png"
+      },
+      "error_log": "Docker container timed out after 300s"
+    }
+  ]
+}

@@ -832,6 +832,12 @@ Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論。機能点80/80で全�
 |---|
 | ![login](coding_benchmark_screenshots/codestral/login.png) |
 
+#### llm-jp-4-32B-a3B-thinking Q4_K_M（25点 / リトライ5回 / A100 80GB） - stock llama.cpp llama-server
+
+| ログイン（初回 attempt のみ撮影、retry 後は frontend が port 3000 に上がらず脱落） |
+|---|
+| ![login](coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q4_K_M/login.png) |
+
 ### 分析
 
 - **qwen3.6:35b-a3b-coding-mxfp8** が同点1位（80/100）。初回で全機能テストをパス。MXFP8量子化でVRAM効率と性能を両立。Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論
