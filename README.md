@@ -898,7 +898,7 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 |---|---:|---:|---:|---:|---|
 | 🥇 **qwen3.6:35b-a3b-coding-mxfp8** | 37GB | 73.3 tok/s | **80/80** | **80/100** | Ollama v0.22.0、初回成功 |
 | DeepSeek-V4-Flash IQ2XXS | 81GB | 21.2 tok/s | 55/80 | 55/100 | antirez fork、5リトライ |
-| 🆕 Ling-2.6-flash MLX 4bit | 65GB | 56.6 tok/s | -- | -- | MLX PR#1227、コード生成成功 |
+| 🆕 Ling-2.6-flash MLX 4bit | 65GB | 56.6 tok/s | 55/80 | 55/100 | MLX PR#1227、初回成功 |
 
 ### Ling-2.6-flash MLX 4bit
 
@@ -909,7 +909,19 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 | モデル | mlx-community/Ling-2.6-flash-mlx-4bit-gs32 |
 | サイズ | 65GB |
 | 生成速度 | 56.6 tok/s |
-| コード生成 | 120秒で7ファイル生成 |
+| 生成時間 | 120秒（7ファイル） |
+| リトライ | 0回（初回成功） |
+| 機能スコア | 55/80 |
+
+- ✅ ビルド成功
+- ✅ ログイン/サインアップ（API）
+- ✅ フレンドフォロー/解除（API）
+- ✅ DM送受信（API）
+- ❌ リアルタイム更新
+
+| ログイン | フレンド | DM | チャット |
+|---|---|---|---|
+| ![login](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/login.png) | ![friends](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/friends.png) | ![dm](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/dm.png) | ![chat](coding_benchmark_screenshots/Ling-2_6-flash-mlx-4bit/chat.png) |
 
 **セットアップ**:
 ```bash
