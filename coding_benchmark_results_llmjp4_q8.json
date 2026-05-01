@@ -1,0 +1,40 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "llm-jp-4-32B-a3B-thinking-Q8_0",
+      "generation_time": 178.76629972457886,
+      "tokens_per_second": 140.8254743838909,
+      "raw_output_length": 21755,
+      "files_generated": 8,
+      "build_success": true,
+      "server_starts": false,
+      "test_login": true,
+      "test_friends": true,
+      "test_messaging": true,
+      "test_realtime": false,
+      "retry_count": 5,
+      "max_retries": 5,
+      "functional_score": 55.0,
+      "visual_scores": {
+        "layout": 0,
+        "aesthetics": 0,
+        "usability": 0,
+        "completeness": 0,
+        "uniqueness": 0,
+        "overall": 0,
+        "comment": "Error: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011Cac3sbdP4LsH4ffbzx9NT'}"
+      },
+      "visual_score": 0.0,
+      "total_score": 55.0,
+      "screenshots": {
+        "login": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q8_0/login.png",
+        "friends": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q8_0/friends.png",
+        "dm": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q8_0/dm.png",
+        "chat": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q8_0/chat.png"
+      },
+      "error_log": "No package.json found in generated code"
+    }
+  ]
+}

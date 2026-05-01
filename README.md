@@ -685,7 +685,9 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
 | Qwopus3.5-9B | 5050s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
+| **llm-jp-4-32B-a3B-thinking (Q8_0)** | 179s | 5 | OK | OK | OK | OK | -- | **55/80** | **55/100** |
 | codestral:22b | 107s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
+| llm-jp-4-32B-a3B-thinking (Q4_K_M) | 833s | 5 | -- | -- | -- | -- | -- | 25/80 | 25/100 |
 | gemma4:e4b | 937s | 10 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
 
 #### Qwen3.6-27B (V100 x4, transformers) - コード生成のみ
@@ -838,6 +840,14 @@ Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論。機能点80/80で全�
 |---|
 | ![login](coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q4_K_M/login.png) |
 
+#### llm-jp-4-32B-a3B-thinking Q8_0（55点 / リトライ5回 / A100 80GB）🥈 - stock llama.cpp llama-server
+
+Q4_K_M (25点) と同じプロンプトで Q8_0 にすると **+30点**。1回目で 8 ファイル生成 (179s, 141 tok/s) → Build / Login / Friend / DM 全部通過。Realtime ポーリング/WS のみ未実装。
+
+| ログイン | フレンド | DM | チャット |
+|---|---|---|---|
+| ![login](coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q8_0/login.png) | ![friends](coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q8_0/friends.png) | ![dm](coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q8_0/dm.png) | ![chat](coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q8_0/chat.png) |
+
 ### 分析
 
 - **qwen3.6:35b-a3b-coding-mxfp8** が同点1位（80/100）。初回で全機能テストをパス。MXFP8量子化でVRAM効率と性能を両立。Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論
@@ -846,6 +856,7 @@ Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論。機能点80/80で全�
 - **DeepSeek-V4-Flash IQ2XXS** は158Bパラメータの大規模モデルだが、2bit量子化により性能劣化。ビルドは成功するが認証・API連携が正しく動作せず25点止まり
 - **qwen3-coder:30b** はビルド・ログインまで通るが、フレンド/DM/RTのUI実装が不完全。コーディング特化モデルでもフルスタックアプリ生成は難しい
 - **Qwopus3.5-9B** はビルド・サーバー起動まで成功し美しいUI（紫グラデーション）を生成するが、APIエンドポイントが仕様と異なりテスト全滅。思考モデルのため1回の生成に600秒超、10リトライで5050秒（84分）
+- **llm-jp-4-32B-a3B-thinking (Q8_0)** は Q4_K_M (25点) と同じ条件で **55点**。Q4 では retry 5 回とも frontend が port 3000 に上がらず脱落していたが、Q8 は 1 回目の 8 ファイル生成で Build / Login / Friend / DM 全パス。**量子化を Q8 まで上げると thinking モデルのコード破綻が大きく減る**ことを示す。Realtime のみ未実装で 55/80 の天井 (qwen3.6:35b-a3b と同点)
 - **codestral:22b** はビルドは通るがフロントエンドにエラー。10回リトライしても解決できず。生成コードが短い（2.8K文字）のが根本原因
 - **gemma4:e4b** はbetter-sqlite3のネイティブビルド問題を10回リトライしても解決できず全滅
 
