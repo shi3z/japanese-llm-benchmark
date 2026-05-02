@@ -680,15 +680,17 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | **qwen3.6:35b-a3b-coding-mxfp8** | 148s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
 | **qwen3.6:27b** (RTX 5090) | 2678s | 2 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
 | **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
-| Ling-2.6-flash MLX 4bit | 1612s | 3 | OK | -- | OK | OK | -- | 45/80 | 45/100 |
+| 🆕 Granite-4.1-30b-8bit | 1419s | 5 | -- | OK | OK | OK | -- | 55/80 | 55/100 |
 | DeepSeek-V4-Flash IQ2XXS | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
+| Ling-2.6-flash MLX 4bit | 1612s | 3 | OK | -- | OK | OK | -- | 45/80 | 45/100 |
 | qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
 | Qwopus3.5-9B | 5050s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | llm-jp-4-32B-a3B-thinking (Q8_0)¹ | 138s | 0 | OK | -- | --¹ | --¹ | -- | 45/80¹ | 45/100¹ |
 | codestral:22b | 107s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | llm-jp-4-32B-a3B-thinking (Q4_K_M) | 833s | 5 | -- | -- | -- | -- | -- | 25/80 | 25/100 |
 | gemma4:e4b | 937s | 10 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
+| 🆕 Mistral-Medium-3.5-128B-4bit | timeout | 0 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
 
 ¹ Q8_0 は Playwright が Friend/DM テストを通過扱いにしているが、**実際のスクリーンショットは全頁完全な白紙(React アプリが mount せず blank document が serve されている)** 。Build/Server起動は成立するもの の Friend/DM/Realtime UI は描画されておらず、テスト selector の緩さによる **誤検出**。実質的な機能スコアは 10/80 (Build) に近い。
 
@@ -977,7 +979,9 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 |---|---:|---:|---:|---:|---|
 | 🥇 **qwen3.6:35b-a3b-coding-mxfp8** | 37GB | 73.3 tok/s | **80/80** | **80/100** | Ollama v0.22.0、初回成功 |
 | DeepSeek-V4-Flash IQ2XXS | 81GB | 21.2 tok/s | 55/80 | 55/100 | antirez fork、5リトライ |
+| 🆕 Granite-4.1-30b-8bit | 32.5GB | 16.7 tok/s | 55/80 | 55/100 | MLX、5リトライ |
 | Ling-2.6-flash MLX 4bit | 65GB | 56.3 tok/s | 45/80 | 45/100 | MLX PR#1227、3リトライ |
+| Mistral-Medium-3.5-128B-4bit | 73GB | ~1 tok/s | 0/80 | 0/100 | タイムアウト（生成遅すぎ） |
 
 ### Ling-2.6-flash MLX 4bit
 
