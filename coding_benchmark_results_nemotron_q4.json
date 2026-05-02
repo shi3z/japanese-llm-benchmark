@@ -1,0 +1,29 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "Nemotron-3-Nano-Omni-30B-Q4_K_M",
+      "generation_time": 67.8592050075531,
+      "tokens_per_second": 129.96026108791574,
+      "raw_output_length": 33194,
+      "files_generated": 17,
+      "build_success": true,
+      "server_starts": true,
+      "test_login": false,
+      "test_friends": false,
+      "test_messaging": false,
+      "test_realtime": false,
+      "retry_count": 0,
+      "max_retries": 0,
+      "functional_score": 25.0,
+      "visual_scores": {},
+      "visual_score": 0.0,
+      "total_score": 25.0,
+      "screenshots": {
+        "login": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/Nemotron-3-Nano-Omni-30B-Q4_K_M/login.png"
+      },
+      "error_log": ""
+    }
+  ]
+}

@@ -686,13 +686,17 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | Ling-2.6-flash MLX 4bit | 1612s | 3 | OK | -- | OK | OK | -- | 45/80 | 45/100 |
 | qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
 | Qwopus3.5-9B | 5050s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
+| **Nemotron-3-Nano-Omni-30B (Q8_0)** | 45s | 0 | OK | OK² | OK² | OK² | -- | **55/80**² | **55/100**² |
 | llm-jp-4-32B-a3B-thinking (Q8_0)¹ | 138s | 0 | OK | -- | --¹ | --¹ | -- | 45/80¹ | 45/100¹ |
 | codestral:22b | 107s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | llm-jp-4-32B-a3B-thinking (Q4_K_M) | 833s | 5 | -- | -- | -- | -- | -- | 25/80 | 25/100 |
+| Nemotron-3-Nano-Omni-30B (Q4_K_M-UD) | 68s | 0 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | gemma4:e4b | 937s | 10 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
 | 🆕 Mistral-Medium-3.5-128B-4bit | timeout | 0 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
 
 ¹ Q8_0 は Playwright が Friend/DM テストを通過扱いにしているが、**実際のスクリーンショットは全頁完全な白紙(React アプリが mount せず blank document が serve されている)** 。Build/Server起動は成立するもの の Friend/DM/Realtime UI は描画されておらず、テスト selector の緩さによる **誤検出**。実質的な機能スコアは 10/80 (Build) に近い。
+
+² Nemotron Q8_0 は **Login 画面は実際に描画されている**(紫の Sign Up ボタン + Username/Password フォーム + "Modern React Chat Application" タイトル)が、**friends.png / dm.png / chat.png はいずれも同じ Login 画面のスクリーンショット**(Playwright が Login 操作だけ済ませて遷移しないまま撮影)。Build / Server / Login UI は本物だが、SPA ルーティング後の Friends/DM/Chat 画面の実装は未到達で、表中の OK は selector 甘さの影響。実質スコアは 25 (Build) + 15 (Login) = 40/80 程度。
 
 #### Qwen3.6-27B (V100 x4, transformers) - コード生成のみ
 
@@ -844,6 +848,22 @@ Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論。機能点80/80で全�
 |---|
 | ![login](coding_benchmark_screenshots/llm-jp-4-32B-a3B-thinking-Q4_K_M/login.png) |
 
+#### Nemotron-3-Nano-Omni-30B Q4_K_M-UD（25点 / リトライ0回 / A100 80GB） - stock llama.cpp llama-server
+
+[unsloth/NVIDIA-Nemotron-3-Nano-Omni-30B-A3B-Reasoning-GGUF](https://huggingface.co/unsloth/NVIDIA-Nemotron-3-Nano-Omni-30B-A3B-Reasoning-GGUF) の `UD-Q4_K_M.gguf` (23.9GB)。NemotronH Mamba2-Transformer Hybrid MoE (30B total / 3.1B active)。68s で 17 ファイル生成 → Build/Server起動 OK だが、Vite が `react/jsx-dev-runtime` の import に失敗してエラー overlay 表示。**少なくとも blank ではなく "本物のエラー画面" を表示している**点で llm-jp-4 (Q4) より良い。
+
+| ログイン (Vite import error overlay) |
+|---|
+| ![login](coding_benchmark_screenshots/Nemotron-3-Nano-Omni-30B-Q4_K_M/login.png) |
+
+#### Nemotron-3-Nano-Omni-30B Q8_0（55点 公称 / 実質40点 / リトライ0回 / A100 80GB）🥈 - stock llama.cpp llama-server
+
+`Q8_0.gguf` (33.6GB)。45s で 7 ファイル生成 → **Login 画面が実際に描画される**(紫 Sign Up + Login フォーム + ヘッダ "Chat App - Modern React Chat Application")。ただし friends.png / dm.png / chat.png は全部同じ Login 画面 — Playwright は遷移せず Login 上で操作した結果を撮ってる。SPA Routing 以降未到達。
+
+| ログイン (本物 UI) | フレンド | DM | チャット |
+|---|---|---|---|
+| ![login](coding_benchmark_screenshots/Nemotron-3-Nano-Omni-30B-Q8_0/login.png) | ![friends](coding_benchmark_screenshots/Nemotron-3-Nano-Omni-30B-Q8_0/friends.png) | ![dm](coding_benchmark_screenshots/Nemotron-3-Nano-Omni-30B-Q8_0/dm.png) | ![chat](coding_benchmark_screenshots/Nemotron-3-Nano-Omni-30B-Q8_0/chat.png) |
+
 #### llm-jp-4-32B-a3B-thinking Q8_0（実質ほぼ0点 / A100 80GB）⚠️ - stock llama.cpp llama-server
 
 3 回別の条件で走らせた(retry 5 / retry 10 / retry 0)が、いずれも **生成された React アプリが UI を一切マウントしない** (空の `<div id="root">` だけ返す HTML)。Playwright が Friend/DM テストを通過扱いするのは、テスト selector が緩く blank document でも特定の URL 遷移だけで pass 判定するため。**スクリーンショットは 4 枚とも完全な白紙 (4254 bytes、内容ゼロ)**。Build と server-start は成立するが、ブラウザに何も見えない時点で実用不可。Q4_K_M も含めて llm-jp-4 はこの React フルスタック 1-shot プロンプトで 動く UI を出力できなかった。
@@ -861,6 +881,7 @@ Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論。機能点80/80で全�
 - **qwen3-coder:30b** はビルド・ログインまで通るが、フレンド/DM/RTのUI実装が不完全。コーディング特化モデルでもフルスタックアプリ生成は難しい
 - **Qwopus3.5-9B** はビルド・サーバー起動まで成功し美しいUI（紫グラデーション）を生成するが、APIエンドポイントが仕様と異なりテスト全滅。思考モデルのため1回の生成に600秒超、10リトライで5050秒（84分）
 - **llm-jp-4-32B-a3B-thinking** は Q4_K_M / Q8_0 とも(retry 0 / 5 / 10 と条件を変えて 4 試行)、Build と server-start は通るが **生成された React アプリが UI を一切描画せず blank document を返す**。Playwright の test_friends / test_messaging が pass 判定になるのは selector が甘く blank でも通るため(誤検出)で、スクリーンショットは全頁完全白紙(4254 bytes)。コーディングベンチで実質的に動く UI は出せていない
+- **Nemotron-3-Nano-Omni-30B-A3B-Reasoning** (NVIDIA, NemotronH Mamba2-Transformer Hybrid MoE 30B/3.1B-active) は **Q4_K_M-UD で Vite import error overlay**(react/jsx-dev-runtime 誤 import)、**Q8_0 で実物 Login 画面が描画される**(紫 Sign Up + Username/Password)。stock llama.cpp が NemotronH 形式を読めるため `llama-server` で直接動く。生成速度は 130–146 tok/s と速いが、SPA Routing 以降の Friends/DM/Chat 画面までは実装が届かず公称 55/100 のうち実質的に意味があるのは Build + Login 描画(40 点相当)まで
 - **codestral:22b** はビルドは通るがフロントエンドにエラー。10回リトライしても解決できず。生成コードが短い（2.8K文字）のが根本原因
 - **gemma4:e4b** はbetter-sqlite3のネイティブビルド問題を10回リトライしても解決できず全滅
 
