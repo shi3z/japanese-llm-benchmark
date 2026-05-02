@@ -85,6 +85,9 @@ def get_coding_model_options(model: str) -> dict:
     if any(s in model.lower() for s in ['3b', '1b', '0.5b', '0.6b']):
         options['num_ctx'] = 32768
         options['num_predict'] = 16384
+    if 'mistral-medium' in model.lower() or '128b' in model.lower():
+        options['num_ctx'] = 32768
+        options['num_predict'] = 16384
     return options
 
 
@@ -173,7 +176,7 @@ def _call_ollama(api_url: str, model: str, prompt: str) -> tuple:
         response = requests.post(
             f'{api_url}/api/generate',
             json={'model': model, 'prompt': prompt, 'stream': False, 'options': options},
-            timeout=3600,
+            timeout=14400,
         )
         data = response.json()
         elapsed = time.time() - start_time

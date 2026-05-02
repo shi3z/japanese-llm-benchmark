@@ -684,6 +684,7 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | DeepSeek-V4-Flash IQ2XXS | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | Ling-2.6-flash MLX 4bit | 1612s | 3 | OK | -- | OK | OK | -- | 45/80 | 45/100 |
+| 🆕 Mistral-Medium-3.5-128B Q2_K (DGX Spark) | 7293s | 3 | OK | -- | OK(API) | OK(API) | -- | 45/80 | 45/100 |
 | qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
 | Qwopus3.5-9B | 5050s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | **Nemotron-3-Nano-Omni-30B (Q8_0)** | 45s | 0 | OK | OK² | OK² | OK² | -- | **55/80**² | **55/100**² |
@@ -736,6 +737,62 @@ RTX 5090 (32GB) + Ollama 0.20.0 でテスト。**機能テスト満点 (80/80)**
 | ログイン | フレンド | DM | チャット |
 |---|---|---|---|
 | ![login](coding_benchmark_screenshots/qwen3_6_27b/login.png) | ![friends](coding_benchmark_screenshots/qwen3_6_27b/friends.png) | ![dm](coding_benchmark_screenshots/qwen3_6_27b/dm.png) | ![chat](coding_benchmark_screenshots/qwen3_6_27b/chat.png) |
+
+---
+
+#### Mistral-Medium-3.5-128B Q2_K（45点 / リトライ3回）🆕 - DGX Spark
+
+DGX Spark (GB10、unified memory 119GB) + Ollama 0.22.1 でテスト。Mistral公式の128B densリリース ([mistralai/Mistral-Medium-3.5-128B](https://huggingface.co/mistralai/Mistral-Medium-3.5-128B)) を [bartowski](https://huggingface.co/bartowski/mistralai_Mistral-Medium-3.5-128B-GGUF) の Q2_K (49.86GB、シングルファイル) で動作。
+
+| 項目 | 結果 |
+|---|---|
+| 生成時間 | 7,293秒（約122分） |
+| 生成速度 | 3.3 tok/s |
+| 出力長 (1次) | 23,959 chars / 7 files |
+| リトライ | 3回（最大） |
+| 機能スコア | 45/80 |
+
+- ✅ ビルド成功
+- ✅ サーバー起動
+- ❌ ログイン/サインアップ（API も UI も failed）
+- ✅ フレンドフォロー/解除（APIのみ動作、UI不一致で-5点）
+- ✅ DM送受信（APIのみ動作、UI不一致で-5点）
+- ❌ リアルタイム更新（2秒ポーリング未実装）
+
+**注意点**:
+- `Q4_K_M` 以上は `.gguf` がシャード分割されており Ollama が未対応（[issue#5245](https://github.com/ollama/ollama/issues/5245)）。シングルファイルで存在する最大は `Q2_K` 49.86GB
+- bartowski の GGUF には mmproj (vision) が同梱されているが、ollama 0.22.1 では `clip_init: failed to load model ... unable to find tensor v.blk.0.attn_out.weight` で起動不可。**LLM 部分のみを抽出した Modelfile** で回避
+- DGX Spark (119GB unified) では `num_ctx=131072` のままだと 134GB 要求で OOM。**`num_ctx=32768` に下げて回避**
+- 1次生成は55/80だが Realtime未実装で retry。retry時に「Frontend server did not start」が連発し、最終的にスコア低下（45/80）
+
+**評価**:
+- ✅ Mistral 128B densモデルが極端な2bit量子化（49GB）で動作・基本機能を実装
+- ✅ Build/Server起動は安定
+- ⚠️ 速度3.3 tok/s で 1 retry あたり ~30分。最大リトライ10回設定だと推定 5時間超
+- ⚠️ Q2_K の知能劣化により Login UI が壊れる、Realtime polling を入れ忘れる、Vite dev server の起動が不安定
+
+**Modelfile**:
+```
+FROM /usr/share/ollama/.ollama/models/blobs/sha256-<Q2_K-blob>
+TEMPLATE {{ if .System }}<s>[SYSTEM_PROMPT]{{ .System }}[/SYSTEM_PROMPT]{{ end }}{{ if .Prompt }}[INST]{{ .Prompt }}[/INST]{{ end }}{{ .Response }}</s>
+PARAMETER stop <s>
+PARAMETER stop [INST]
+```
+
+**動作方法**:
+```bash
+# シャードされていないQ2_Kを取得
+ollama pull hf.co/bartowski/mistralai_Mistral-Medium-3.5-128B-GGUF:Q2_K
+
+# mmproj を除いた text-only Modelfile を作成
+ollama show hf.co/bartowski/mistralai_Mistral-Medium-3.5-128B-GGUF:Q2_K --modelfile \
+  | grep -v "FROM .*sha256-b1f67dbe" > MistralMedium.Modelfile
+ollama create mistral-medium-3.5:128b-q2k -f MistralMedium.Modelfile
+
+# ベンチマーク実行 (約2時間)
+python coding_benchmark.py --models mistral-medium-3.5:128b-q2k \
+  --output coding_benchmark_mistral_medium.json --skip-visual --max-retries 3
+```
 
 ---
 
@@ -821,6 +878,14 @@ Mac Studio M3 Ultra (512GB) で73.3 tok/sの高速推論。機能点80/80で全�
 | ログイン |
 |---|
 | ![login](coding_benchmark_screenshots/qwen3_6_35b-a3b/login.png) |
+
+#### Mistral-Medium-3.5-128B Q2_K（45点 / リトライ3回）🆕 - DGX Spark
+
+DGX Spark (GB10) で 3.3 tok/s。生成1次は55/80だがRealtime欠如→retry→server起動失敗が連発し45/80に低下。
+
+| ログイン |
+|---|
+| ![login](coding_benchmark_screenshots/mistral-medium-3_5_128b-q2k/login.png) |
 
 #### Ling-2.6-flash MLX 4bit（45点 / リトライ3回）
 
@@ -1110,6 +1175,14 @@ NVIDIA DGX Spark（GB10 GPU、統合メモリ128GB、aarch64）での推論速�
 
 - **gpt-oss:20b**: 27.8 tok/sで安定動作。ROUGE-L 0.310はA100（88 tok/s）の1/3の速度だが品質は同等
 - **qwen3.5**: Thinkingモデルが300秒以内に回答を完了できず全滅。DGX SparkではGPU使用率96%（他プロセスと競合）が影響の可能性
+
+### コーディングベンチマーク (DGX Spark)
+
+| Model | 生成時間 | Tok/s | リトライ | TOTAL | 備考 |
+|---|---:|---:|---:|---:|---|
+| 🆕 **Mistral-Medium-3.5-128B Q2_K** | 7,293s | 3.3 | 3/3 | **45/100** | bartowski Q2_K (49.86GB)、Build/Server OK、Login UI失敗 |
+
+詳細は[コーディングベンチマーク § Mistral-Medium-3.5-128B Q2_K](#mistral-medium-35-128b-q2k45点--リトライ3回-)を参照。
 
 ---
 

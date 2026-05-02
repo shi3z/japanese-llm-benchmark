@@ -1,0 +1,32 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "mistral-medium-3.5:128b-q2k",
+      "generation_time": 7293.019619703293,
+      "tokens_per_second": 3.3430716477565836,
+      "raw_output_length": 23959,
+      "files_generated": 7,
+      "build_success": true,
+      "server_starts": true,
+      "test_login": false,
+      "test_friends": true,
+      "test_messaging": true,
+      "test_realtime": false,
+      "retry_count": 3,
+      "max_retries": 3,
+      "functional_score": 45.0,
+      "visual_scores": {},
+      "visual_score": 0.0,
+      "total_score": 45.0,
+      "screenshots": {
+        "login": "/home/shi3z/japanese-llm-benchmark/coding_benchmark_screenshots/mistral-medium-3_5_128b-q2k/login.png",
+        "friends": "/home/shi3z/japanese-llm-benchmark/coding_benchmark_screenshots/mistral-medium-3_5_128b-q2k/friends.png",
+        "dm": "/home/shi3z/japanese-llm-benchmark/coding_benchmark_screenshots/mistral-medium-3_5_128b-q2k/dm.png",
+        "chat": "/home/shi3z/japanese-llm-benchmark/coding_benchmark_screenshots/mistral-medium-3_5_128b-q2k/chat.png"
+      },
+      "error_log": ""
+    }
+  ]
+}
