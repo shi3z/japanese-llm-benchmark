@@ -681,7 +681,7 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | **qwen3.6:27b** (RTX 5090) | 2678s | 2 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
 | **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
 | 🆕 Granite-4.1-30b-8bit | 1419s | 5 | -- | OK | OK | OK | -- | 55/80 | 55/100 |
-| DeepSeek-V4-Flash IQ2XXS | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
+| DeepSeek-V4-Flash IQ2XXS³ | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | Ling-2.6-flash MLX 4bit | 1612s | 3 | OK | -- | OK | OK | -- | 45/80 | 45/100 |
 | 🆕 Mistral-Medium-3.5-128B Q2_K (DGX Spark) | 7293s | 3 | OK | -- | OK(API) | OK(API) | -- | 45/80 | 45/100 |
@@ -699,6 +699,8 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 ¹ Q8_0 は Playwright が Friend/DM テストを通過扱いにしているが、**実際のスクリーンショットは全頁完全な白紙(React アプリが mount せず blank document が serve されている)** 。Build/Server起動は成立するもの の Friend/DM/Realtime UI は描画されておらず、テスト selector の緩さによる **誤検出**。実質的な機能スコアは 10/80 (Build) に近い。
 
 ² Nemotron Q8_0 は **Login 画面は実際に描画されている**(紫の Sign Up ボタン + Username/Password フォーム + "Modern React Chat Application" タイトル)が、**friends.png / dm.png / chat.png はいずれも同じ Login 画面のスクリーンショット**(Playwright が Login 操作だけ済ませて遷移しないまま撮影)。Build / Server / Login UI は本物だが、SPA ルーティング後の Friends/DM/Chat 画面の実装は未到達で、表中の OK は selector 甘さの影響。実質スコアは 25 (Build) + 15 (Login) = 40/80 程度。
+
+³ DeepSeek-V4-Flash IQ2XXS は **index.html を生成しなかった**ため、Vite が React アプリをマウントできず、**全スクリーンショットが完全な白紙**。API テストは通過するが UI は一切描画されない。生成ファイル: package.json, vite.config.js, server.js, src/main.jsx, src/App.jsx の5ファイルのみ (index.html 欠落)。55/80 は API 動作分のスコア。
 
 #### Qwen3.6-27B (V100 x4, transformers) - コード生成のみ
 
