@@ -130,7 +130,7 @@ test('signup and login', async ({ page, request }) => {
 
       // If still on login, try logging in (account may already exist from API)
       if (!loginSuccess) {
-        const loginLink = await findButton(page, ['login', 'Log In', 'ログイン', 'サインイン']);
+        const loginLink = await findButton(page, ['login', 'Log In', 'Sign In', 'ログイン', 'サインイン']);
         if (loginLink) {
           try { await loginLink.click(); await page.waitForTimeout(1000); } catch {}
         }
@@ -142,7 +142,7 @@ test('signup and login', async ({ page, request }) => {
         if (uInput2 && pInput2) {
           await uInput2.fill('testuser1');
           await pInput2.fill('password123');
-          const loginBtn = await findButton(page, ['Login', 'Log In', 'ログイン', 'Submit', 'サインイン']);
+          const loginBtn = await findButton(page, ['Login', 'Log In', 'Sign In', 'ログイン', 'Submit', 'サインイン']);
           if (loginBtn) {
             await loginBtn.click();
             await page.waitForTimeout(3000);
@@ -208,7 +208,7 @@ test('follow and unfollow friend', async ({ page, request }) => {
   if (uInput && pInput) {
     await uInput.fill('alice');
     await pInput.fill('password123');
-    const loginBtn = await findButton(page, ['Login', 'Log In', 'ログイン', 'Submit']);
+    const loginBtn = await findButton(page, ['Login', 'Log In', 'Sign In', 'ログイン', 'Submit', 'サインイン']);
     if (loginBtn) {
       await loginBtn.click();
       await page.waitForTimeout(3000);
@@ -297,7 +297,7 @@ test('send and receive direct message', async ({ page, request }) => {
   if (uInput && pInput) {
     await uInput.fill('charlie');
     await pInput.fill('password123');
-    const loginBtn = await findButton(page, ['Login', 'Log In', 'ログイン', 'Submit']);
+    const loginBtn = await findButton(page, ['Login', 'Log In', 'Sign In', 'ログイン', 'Submit', 'サインイン']);
     if (loginBtn) {
       await loginBtn.click();
       await page.waitForTimeout(3000);
@@ -394,7 +394,7 @@ test('messages appear in real-time', async ({ page, request, browser }) => {
   if (uInput && pInput) {
     await uInput.fill('eve');
     await pInput.fill('password123');
-    const loginBtn = await findButton(page, ['Login', 'Log In', 'ログイン', 'Submit']);
+    const loginBtn = await findButton(page, ['Login', 'Log In', 'Sign In', 'ログイン', 'Submit', 'サインイン']);
     if (loginBtn) {
       await loginBtn.click();
       await page.waitForTimeout(3000);

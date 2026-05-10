@@ -693,7 +693,8 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | llm-jp-4-32B-a3B-thinking (Q4_K_M) | 833s | 5 | -- | -- | -- | -- | -- | 25/80 | 25/100 |
 | Nemotron-3-Nano-Omni-30B (Q4_K_M-UD) | 68s | 0 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
 | gemma4:e4b | 937s | 10 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
-| 🆕 Mistral-Medium-3.5-128B-4bit | timeout | 0 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
+| 🆕 **DeepSeek-V4-Flash (ds4 q4)** | 307s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
+| 🆕 Mistral-Medium-3.5-128B-4bit | 47198s | 3 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
 
 ¹ Q8_0 は Playwright が Friend/DM テストを通過扱いにしているが、**実際のスクリーンショットは全頁完全な白紙(React アプリが mount せず blank document が serve されている)** 。Build/Server起動は成立するもの の Friend/DM/Realtime UI は描画されておらず、テスト selector の緩さによる **誤検出**。実質的な機能スコアは 10/80 (Build) に近い。
 
