@@ -1159,10 +1159,50 @@ Google Gemma 4シリーズのベンチマーク結果。Apache 2.0ライセン�
 | Model | Size | 速度 | 機能 | TOTAL | 備考 |
 |---|---:|---:|---:|---:|---|
 | 🥇 **qwen3.6:35b-a3b-coding-mxfp8** | 37GB | 73.3 tok/s | **80/80** | **80/100** | Ollama v0.22.0、初回成功 |
+| 🆕 **Qwopus3.6-35B-A3B I-Mini** | 13GB | 50.6 tok/s | **80/80** | **80/100** | llama-server、初回成功 |
 | DeepSeek-V4-Flash IQ2XXS | 81GB | 21.2 tok/s | 55/80 | 55/100 | antirez fork、5リトライ |
 | 🆕 Granite-4.1-30b-8bit | 32.5GB | 16.7 tok/s | 55/80 | 55/100 | MLX、5リトライ |
 | Ling-2.6-flash MLX 4bit | 65GB | 56.3 tok/s | 45/80 | 45/100 | MLX PR#1227、3リトライ |
 | Mistral-Medium-3.5-128B-4bit | 73GB | ~1 tok/s | 0/80 | 0/100 | タイムアウト（生成遅すぎ） |
+
+### Qwopus3.6-35B-A3B I-Mini (80/100 - 初回成功)
+
+[mudler/Qwopus3.6-35B-A3B-v1-APEX-GGUF](https://huggingface.co/mudler/Qwopus3.6-35B-A3B-v1-APEX-GGUF) の I-Mini バリアント（13GB）をllama-serverでテスト。
+
+| 項目 | 結果 |
+|---|---|
+| モデル | Qwopus3.6-35B-A3B-v1-APEX-I-Mini.gguf |
+| サイズ | 13GB |
+| 生成速度 | 50.6 tok/s |
+| 生成時間 | 138秒 |
+| リトライ | 0回（初回成功） |
+| 機能スコア | 80/80 |
+
+- ✅ ビルド成功
+- ✅ サーバー起動
+- ✅ ログイン/サインアップ
+- ✅ フレンドフォロー/解除
+- ✅ DM送受信
+- ✅ リアルタイム更新（2秒ポーリング）
+
+| ログイン | フレンド | DM | リアルタイムチャット |
+|---|---|---|---|
+| ![login](coding_benchmark_screenshots/qwopus/login.png) | ![friends](coding_benchmark_screenshots/qwopus/friends.png) | ![dm](coding_benchmark_screenshots/qwopus/dm.png) | ![chat](coding_benchmark_screenshots/qwopus/chat.png) |
+
+**セットアップ**:
+```bash
+# モデルダウンロード（I-Mini バリアント、13GB）
+huggingface-cli download mudler/Qwopus3.6-35B-A3B-v1-APEX-GGUF \
+  Qwopus3.6-35B-A3B-v1-APEX-I-Mini.gguf --local-dir ./models
+
+# llama-server起動
+llama-server -m ./models/Qwopus3.6-35B-A3B-v1-APEX-I-Mini.gguf \
+  --port 8080 -c 32768 --n-gpu-layers 999
+```
+
+**評価**: Qwopus3.6はQwen 3.6 35B A3Bベースのモデルで、Claude Opusの構造化推論習慣を蒸留したとされる（⚠️ライセンス上の懸念あり）。I-Mini（13GB）は他のバリアント（I-Balanced 25GB、Full 70GB）と比較して最も軽量ながら、コーディングベンチマークで初回成功・80/80の完璧なスコアを達成。UIデザインも洗練されており、ログイン画面のセンタリング、フォローボタンの配色、チャット画面のタイムスタンプ表示など、細部まで丁寧に実装されている。13GBという軽量サイズでqwen3.6:35b-a3b-coding-mxfp8（37GB）と同等の性能を発揮し、メモリ効率が非常に高い。
+
+---
 
 ### Ling-2.6-flash MLX 4bit
 

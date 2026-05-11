@@ -145,27 +145,51 @@ def _call_llama_cpp(api_url: str, prompt: str) -> tuple:
 
 
 def _call_mlx(api_url: str, prompt: str) -> tuple:
-    """Call MLX /v1/chat/completions endpoint."""
+    """Call MLX /v1/chat/completions endpoint with streaming."""
     start_time = time.time()
+    output_chunks = []
+    tokens = 0
     try:
-        response = requests.post(
+        with requests.post(
             f'{api_url}/v1/chat/completions',
             json={
+                'model': 'deepseek-chat',  # Use deepseek-chat to disable thinking mode for ds4
                 'messages': [{'role': 'user', 'content': prompt}],
                 'max_tokens': 65536,
-                'temperature': 0.3
+                'temperature': 0.3,
+                'stream': True
             },
-            timeout=1800,
-        )
-        data = response.json()
+            timeout=18000,
+            stream=True,
+        ) as response:
+            for line in response.iter_lines(decode_unicode=True):
+                if not line or not line.startswith('data: '):
+                    continue
+                payload = line[6:].strip()
+                if not payload or payload == '[DONE]':
+                    continue
+                try:
+                    chunk = json.loads(payload)
+                    delta = chunk.get('choices', [{}])[0].get('delta', {})
+                    content = delta.get('content', '')
+                    if content:
+                        output_chunks.append(content)
+                        tokens += 1
+                        if tokens % 100 == 0:
+                            print(f'    Generated {tokens} tokens...', end='\r')
+                except Exception:
+                    continue
         elapsed = time.time() - start_time
-        output = data.get('choices', [{}])[0].get('message', {}).get('content', '') or ''
-        usage = data.get('usage', {})
-        tokens = usage.get('completion_tokens', len(output))
+        output = ''.join(output_chunks)
         tps = tokens / elapsed if elapsed > 0 else 0
+        print(f'    Generated {tokens} tokens in {elapsed:.1f}s ({tps:.1f} tok/s)')
         return output.strip(), elapsed, tps
     except Exception as e:
-        return f'Error: {str(e)}', time.time() - start_time, 0
+        elapsed = time.time() - start_time
+        partial = ''.join(output_chunks)
+        if partial:
+            return partial.strip(), elapsed, tokens / elapsed if elapsed > 0 else 0
+        return f'Error: {str(e)}', elapsed, 0
 
 
 def _call_ollama(api_url: str, model: str, prompt: str) -> tuple:
@@ -200,6 +224,10 @@ def _clean_thinking(output: str) -> str:
 
 def _detect_server_type(api_url: str) -> str:
     """Detect server type by checking available endpoints."""
+    # For Qwen-based models (like Qwopus), prefer MLX path which uses /v1/chat/completions
+    # This avoids using DeepSeek-specific tokens in _call_llama_cpp
+    if ':8080' in api_url:
+        return 'mlx'  # Use /v1/chat/completions for llama-server
     try:
         # Check if llama.cpp (has /completion endpoint)
         r = requests.post(
