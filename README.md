@@ -702,6 +702,98 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 
 ³ DeepSeek-V4-Flash IQ2XXS は **index.html を生成しなかった**ため、Vite が React アプリをマウントできず、**全スクリーンショットが完全な白紙**。API テストは通過するが UI は一切描画されない。生成ファイル: package.json, vite.config.js, server.js, src/main.jsx, src/App.jsx の5ファイルのみ (index.html 欠落)。55/80 は API 動作分のスコア。
 
+---
+
+#### DeepSeek-V4-Flash (ds4 q4)（80点 / リトライ0回）🥇🆕 - Mac Studio M3 Ultra
+
+[antirez/ds4](https://github.com/antirez/ds4) を使用した DeepSeek V4 Flash の専用推論エンジンによるテスト。**初回生成で機能テスト満点 (80/80)** を達成。
+
+##### 環境構成
+
+| 項目 | 値 |
+|---|---|
+| **ハードウェア** | Mac Studio M3 Ultra (512GB Unified Memory) |
+| **推論エンジン** | [ds4](https://github.com/antirez/ds4) (Apple Silicon専用) |
+| **モデル** | DeepSeek-V4-Flash Q4 (153GB) |
+| **量子化** | 4-bit (Q4) |
+| **コンテキスト** | 65,536 tokens |
+
+##### ベンチマーク結果
+
+| 項目 | 結果 |
+|---|---|
+| **生成時間** | 307秒（約5分） |
+| **生成速度** | 26.2 tok/s |
+| **出力トークン** | 8,036 |
+| **リトライ** | 0回（初回で成功） |
+| **機能スコア** | **80/80（満点）** |
+| **Total** | **80/100** |
+
+##### テスト結果詳細
+
+| テスト | API | UI | 結果 |
+|--------|-----|-----|------|
+| Build | ✓ | - | OK |
+| Server起動 | ✓ | - | OK |
+| ログイン/サインアップ | ✓ | ✓ | OK |
+| フレンドフォロー/解除 | ✓ | ✓ | OK |
+| DM送受信 | ✓ | ✓ | OK |
+| リアルタイム更新(2秒) | ✓ | ✓ | **OK** |
+
+##### 生成ファイル構成
+
+```
+├── package.json          # 依存関係定義
+├── vite.config.js        # Vite設定 (APIプロキシ含む)
+├── server.js             # Express + better-sqlite3 バックエンド
+├── index.html            # Viteエントリーポイント
+├── start.sh              # 起動スクリプト
+└── src/
+    ├── main.jsx          # Reactエントリーポイント
+    └── App.jsx           # メインコンポーネント (19KB, 550行)
+```
+
+##### 技術的特徴
+
+**バックエンド (server.js)**
+- Express.js + better-sqlite3 (インメモリDB)
+- JWT認証 (jsonwebtoken)
+- RESTful API設計
+  - `POST /api/auth/signup` - ユーザー登録
+  - `POST /api/auth/login` - ログイン
+  - `GET /api/users` - ユーザー一覧
+  - `POST /api/friends/follow` - フォロー
+  - `POST /api/friends/unfollow` - アンフォロー
+  - `GET /api/friends` - フレンド一覧
+  - `POST /api/messages/send` - メッセージ送信
+  - `GET /api/messages/:recipientId` - メッセージ取得
+
+**フロントエンド (App.jsx)**
+- React 18 + Vite
+- CSS-in-JS スタイリング
+- 2秒間隔のポーリングによるリアルタイム更新
+- レスポンシブUI (グラデーション背景、カード型レイアウト)
+
+##### スクリーンショット
+
+| ログイン | フレンド | DM | チャット (リアルタイム) |
+|---|---|---|---|
+| ![login](coding_benchmark_screenshots/ds4-final/login.png) | ![friends](coding_benchmark_screenshots/ds4-final/friends.png) | ![dm](coding_benchmark_screenshots/ds4-final/dm.png) | ![chat](coding_benchmark_screenshots/ds4-final/chat.png) |
+
+##### 評価
+
+ds4 + DeepSeek-V4-Flash Q4 は、Mac Studio M3 Ultra 上で **26.2 tok/s** という高速な推論速度を実現しながら、**初回生成で完全なReactチャットアプリケーション**を生成した。
+
+特筆すべき点:
+1. **リトライ0回**: 他の80点モデル (qwen3.6:27b, qwen3.6:35b-a3b-coding-mxfp8) がリトライを要したのに対し、ds4は初回で満点
+2. **高速生成**: 307秒 (5分) で完全なアプリを生成。qwen3.6:27b の 2678秒 (45分) と比較して約9倍高速
+3. **コード品質**: index.html 含む全7ファイルを適切に生成、UIも美しいグラデーションデザイン
+4. **リアルタイム機能**: 2秒ポーリングが正しく実装され、メッセージの即時反映を確認
+
+ds4は [antirez](https://github.com/antirez) (Redis作者) による Apple Silicon 最適化推論エンジンで、DeepSeek V4 Flash の性能を最大限に引き出している。153GB のモデルを512GB Unified Memory で快適に動作させ、コーディングベンチマークで最高評価を獲得した。
+
+---
+
 #### Qwen3.6-27B (V100 x4, transformers) - コード生成のみ
 
 | 項目 | 値 |
