@@ -91,6 +91,69 @@ def get_coding_model_options(model: str) -> dict:
     return options
 
 
+def _call_llama_cpp_chat(api_url: str, prompt: str) -> tuple:
+    """Call llama.cpp /v1/chat/completions (OpenAI-compatible) with streaming.
+
+    Uses the GGUF-embedded chat template so this works for Qwen3.6/Qwen3 etc.
+    without manually wrapping tokens. Streams to get timely-token stats and to
+    avoid potential non-stream serialization issues.
+    """
+    start_time = time.time()
+    output_chunks = []
+    tokens = 0
+    try:
+        with requests.post(
+            f'{api_url}/v1/chat/completions',
+            json={
+                'messages': [{'role': 'user', 'content': prompt}],
+                'max_tokens': 32768,
+                'temperature': 0.3,
+                'stream': True,
+            },
+            timeout=86400,
+            stream=True,
+        ) as response:
+            for line in response.iter_lines(decode_unicode=True):
+                if not line or not line.startswith('data: '):
+                    continue
+                payload = line[6:].strip()
+                if not payload or payload == '[DONE]':
+                    continue
+                try:
+                    chunk = json.loads(payload)
+                except Exception:
+                    continue
+                choices = chunk.get('choices', [])
+                if choices:
+                    delta = choices[0].get('delta', {}) or {}
+                    if delta.get('content'):
+                        output_chunks.append(delta['content'])
+                        tokens += 1
+                    if delta.get('reasoning_content'):
+                        # Count reasoning tokens toward generation throughput
+                        # but discard the text since we only want the final answer.
+                        tokens += 1
+                    if choices[0].get('finish_reason'):
+                        break
+                # llama.cpp exposes timings.predicted_n in the last chunk
+                t = chunk.get('timings') or {}
+                if t.get('predicted_n'):
+                    tokens = t['predicted_n']
+                usage = chunk.get('usage')
+                if usage and usage.get('completion_tokens'):
+                    tokens = usage['completion_tokens']
+        elapsed = time.time() - start_time
+        output = ''.join(output_chunks)
+        tps = tokens / elapsed if elapsed > 0 else 0
+        return output.strip(), elapsed, tps
+    except Exception as e:
+        elapsed = time.time() - start_time
+        partial = ''.join(output_chunks)
+        if partial:
+            return partial.strip(), elapsed, tokens / elapsed if elapsed > 0 else 0
+        return f'Error: {str(e)}', elapsed, 0
+
+
 def _call_llama_cpp(api_url: str, prompt: str) -> tuple:
     """Call llama.cpp /completion with stream=true to bypass non-stream JSON UTF-8 bug.
 
@@ -243,6 +306,9 @@ def _detect_server_type(api_url: str) -> str:
     return 'mlx'
 
 
+LLAMA_CPP_CHAT_MODE = False
+
+
 def generate_code(model: str, ollama_host: str = 'localhost') -> tuple:
     """Call LLM to generate the chat app code."""
     prompt = get_coding_prompt()
@@ -255,6 +321,8 @@ def generate_code(model: str, ollama_host: str = 'localhost') -> tuple:
         server_type = _detect_server_type(api_url)
         if server_type == 'mlx':
             output, elapsed, tps = _call_mlx(api_url, prompt)
+        elif LLAMA_CPP_CHAT_MODE:
+            output, elapsed, tps = _call_llama_cpp_chat(api_url, prompt)
         else:
             output, elapsed, tps = _call_llama_cpp(api_url, prompt)
     else:
@@ -273,6 +341,8 @@ def generate_code_with_prompt(model: str, prompt: str, ollama_host: str = 'local
         server_type = _detect_server_type(api_url)
         if server_type == 'mlx':
             output, elapsed, tps = _call_mlx(api_url, prompt)
+        elif LLAMA_CPP_CHAT_MODE:
+            output, elapsed, tps = _call_llama_cpp_chat(api_url, prompt)
         else:
             output, elapsed, tps = _call_llama_cpp(api_url, prompt)
     else:
@@ -687,8 +757,13 @@ if __name__ == '__main__':
     parser.add_argument('--timeout', type=int, default=300, help='Docker timeout (seconds)')
     parser.add_argument('--skip-visual', action='store_true', help='Skip Claude vision evaluation')
     parser.add_argument('--max-retries', type=int, default=10, help='Max retry attempts on failure')
+    parser.add_argument('--llama-cpp-chat', action='store_true',
+                        help='Use /v1/chat/completions (GGUF chat template) for llama.cpp server '
+                             'instead of the DeepSeek-templated /completion endpoint.')
 
     args = parser.parse_args()
+
+    globals()['LLAMA_CPP_CHAT_MODE'] = bool(args.llama_cpp_chat)
 
     ensure_docker_image()
 

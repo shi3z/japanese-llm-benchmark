@@ -1,0 +1,32 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "Qwen3.6-27B-MTP-Q8_0-baseline",
+      "generation_time": 445.7318902015686,
+      "tokens_per_second": 13.486464300128153,
+      "raw_output_length": 11088,
+      "files_generated": 6,
+      "build_success": true,
+      "server_starts": true,
+      "test_login": true,
+      "test_friends": true,
+      "test_messaging": true,
+      "test_realtime": true,
+      "retry_count": 1,
+      "max_retries": 3,
+      "functional_score": 75.0,
+      "visual_scores": {},
+      "visual_score": 0.0,
+      "total_score": 75.0,
+      "screenshots": {
+        "login": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-baseline/login.png",
+        "friends": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-baseline/friends.png",
+        "dm": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-baseline/dm.png",
+        "chat": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-baseline/chat.png"
+      },
+      "error_log": ""
+    }
+  ]
+}
