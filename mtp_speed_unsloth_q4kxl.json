@@ -1,0 +1,61 @@
+{
+  "label": "unsloth-UD-Q4_K_XL-mtp-n3",
+  "api_url": "http://localhost:11439",
+  "max_tokens": 4096,
+  "n_prompts": 3,
+  "results": [
+    {
+      "elapsed_s": 38.158,
+      "predicted_n": 2618,
+      "content_tokens_streamed": 183,
+      "reasoning_tokens_streamed": 2422,
+      "reasoning_chars": 9585,
+      "decode_tps": 69.05,
+      "wall_tps": 68.61,
+      "prompt_ms": 113.778,
+      "prompt_n": 48,
+      "content_head": "```python\ndef merge_sort(arr):\n    \"\"\"\n    Sorts a list of integers using the merge sort algorithm.\n    Returns a new sorted list in ascending order.\n    Time complexity is O(n log n) for all cases.\n    \"\"\"\n    if len(arr) <= 1:\n        return arr\n    mid = len(arr) // 2\n    left = merge_sort(arr[:mid])\n    right = merge_sort(arr[mid:])\n    merged = []\n    i = j = 0\n    while i < len(left) and j <",
+      "content_tail": "r\n    mid = len(arr) // 2\n    left = merge_sort(arr[:mid])\n    right = merge_sort(arr[mid:])\n    merged = []\n    i = j = 0\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            merged.append(left[i])\n            i += 1\n        else:\n            merged.append(right[j])\n            j += 1\n    merged.extend(left[i:])\n    merged.extend(right[j:])\n    return merged\n```",
+      "content_len": 646,
+      "prompt_idx": 0,
+      "prompt_head": "Write a self-contained Python function `merge_sort(arr)` that sorts a list of in"
+    },
+    {
+      "elapsed_s": 35.863,
+      "predicted_n": 2418,
+      "content_tokens_streamed": 245,
+      "reasoning_tokens_streamed": 2167,
+      "reasoning_chars": 7214,
+      "decode_tps": 68.4,
+      "wall_tps": 67.42,
+      "prompt_ms": 241.437,
+      "prompt_n": 82,
+      "content_head": "```python\nfrom collections import OrderedDict\n\nclass LRUCache:\n    def __init__(self, capacity: int):\n        self.capacity = capacity\n        self.cache = OrderedDict()\n\n    def get(self, key: int) -> int:\n        if key not in self.cache:\n            return -1\n        self.cache.move_to_end(key)\n        return self.cache[key]\n\n    def put(self, key: int, value: int) -> None:\n        if key in se",
+      "content_tail": ".cache.move_to_end(key)\n        self.cache[key] = value\n        if len(self.cache) > self.capacity:\n            self.cache.popitem(last=False)\n\n\ndef main():\n    cache = LRUCache(2)\n    cache.put(1, 1)\n    cache.put(2, 2)\n    print(cache.get(1))\n    cache.put(3, 3)\n    print(cache.get(2))\n    cache.put(4, 4)\n    print(cache.get(1))\n    print(cache.get(3))\n\n\nif __name__ == \"__main__\":\n    main()\n```",
+      "content_len": 826,
+      "prompt_idx": 1,
+      "prompt_head": "Write a self-contained Python module with: (1) a class `LRUCache(capacity)` with"
+    },
+    {
+      "elapsed_s": 10.54,
+      "predicted_n": 701,
+      "content_tokens_streamed": 106,
+      "reasoning_tokens_streamed": 588,
+      "reasoning_chars": 2118,
+      "decode_tps": 69.38,
+      "wall_tps": 66.51,
+      "prompt_ms": 114.703,
+      "prompt_n": 52,
+      "content_head": "```jsx\nimport { useState } from 'react';\n\nfunction Counter() {\n  const [count, setCount] = useState(0);\n\n  return (\n    <div>\n      <p>Count: {count}</p>\n      <button onClick={() => setCount(count - 1)}>-1</button>\n      <button onClick={() => setCount(count + 1)}>+1</button>\n    </div>\n  );\n}\n\nexport default Counter;\n```",
+      "content_tail": "",
+      "content_len": 324,
+      "prompt_idx": 2,
+      "prompt_head": "Write a single React functional component `Counter` in JSX that shows a count an"
+    }
+  ],
+  "avg_decode_tps": 68.94,
+  "avg_wall_tps": 67.51,
+  "total_predicted_n": 5737,
+  "total_elapsed_s": 84.56,
+  "aggregate_tps": 67.85
+}
