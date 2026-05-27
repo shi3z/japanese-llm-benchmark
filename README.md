@@ -688,6 +688,7 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | DeepSeek-V4-Flash IQ2XXS³ | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | 🆕 Qwen3.6-27B-MTP UD-Q4_K_XL (A100, unsloth, +MTP n=3) | 821s | 5 | OK | OK | OK | -- | -- | 45/80 | 45/100 |
+| 🆕 Qwopus3.6-27B-v2-MTP Q8_0 (A100, Jackrong, +MTP n=3) | 782s | 5 | OK | OK | OK | -- | -- | 45/80 | 45/100 |
 | Ling-2.6-flash MLX 4bit | 1612s | 3 | OK | -- | OK | OK | -- | 45/80 | 45/100 |
 | 🆕 Mistral-Medium-3.5-128B Q2_K (DGX Spark) | 7293s | 3 | OK | -- | OK(API) | OK(API) | -- | 45/80 | 45/100 |
 | qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
@@ -1047,6 +1048,7 @@ llama.cpp [PR #22673](https://github.com/ggml-org/llama.cpp/pull/22673) で `mas
 | Q8_0 + MTP `n_max=2` | 74.3 | **1.94×** |
 | Q8_0 + MTP `n_max=3` | 75.8 | **1.98×** |
 | Unsloth UD-Q4_K_XL + MTP `n_max=3` | 67.9 | (— K-quant dequant overhead で Q8 より遅い) |
+| 🆕 Jackrong Qwopus3.6-27B-v2 Q8_0 + MTP `n_max=3` | 70.1 | (— Opus 蒸留 fine-tune の重み drift で MTP 効率がやや低下) |
 
 PR著者の主張 (Qwen3.6-27B 上で 22.97→42.45 tok/s ≈ 1.85× on 3090) を A100 でほぼ再現。**ドラフト受入率は構造化コード生成で 94.7%** と PR の 75% 主張より高い (`#gen drafts = 6157, #acc drafts = 5832`)。
 
@@ -1057,6 +1059,7 @@ PR著者の主張 (Qwen3.6-27B 上で 22.97→42.45 tok/s ≈ 1.85× on 3090) �
 | ggml-org Q8_0 baseline | 446s | 13.5¹ | 1 | 75/80 | 75/100 |
 | ggml-org Q8_0 + MTP n=3 | **282s** | 78.5 | 1 | 65/80 | 65/100 |
 | unsloth UD-Q4_K_XL + MTP n=3 | 821s | 71.0 | 5 (上限) | 45/80 | 45/100 |
+| 🆕 Jackrong Qwopus3.6-27B-v2 Q8_0 + MTP n=3 | 782s | 77.6 | 5 (上限) | 45/80 | 45/100 |
 
 ¹ baseline の `tokens_per_second` は `coding_benchmark.py` 元実装の **content-only 計測**(streamed `delta.content` チャンクのみカウント)。reasoning_content まで含めた combined metric は速度ベンチの ~38 tok/s 側を参照。
 
@@ -1065,6 +1068,7 @@ PR著者の主張 (Qwen3.6-27B 上で 22.97→42.45 tok/s ≈ 1.85× on 3090) �
 - **エンドツーエンドで 1.58× 高速化** (446s→282s)。生成だけなら 2× 出るが、thinking prefill / Docker / retry のオーバーヘッドで多少薄まる。
 - **Q8_0 vs Q8_0+MTP のスコア差 (75 vs 65) は RNG 揺れの範囲内**。投機的デコードはターゲットモデルが全トークンを検証するため、サンプリング温度 0.3 でも数学的に baseline と等価。両ランとも friends テストで同じ失敗パターン。
 - **Unsloth UD-Q4_K_XL は明確に品質劣化** (5回上限で打ち切り、DM/Realtime 未通過)。Dynamic 4-bit でも 17GB→29GB の差が React/Express 複合機能で効く。さらに **速度も Q8_0 より遅い** (67.9 vs 75.8 tok/s) — K-quant の dequant コストと MTP verify のコストが支配的で、4-bit の bandwidth 利益を相殺。**A100 80GB 上では Unsloth Q4 を選ぶ意味はない。**
+- **🆕 Jackrong Qwopus3.6-27B-v2 (Qwen3.6 + Opus 蒸留 chat fine-tune) は同じ Q8_0 サイズでも ggml-org base より速度・コーディング能力ともに劣る** (45/100, 5回上限到達)。Opus 風応答に最適化された fine-tune が大規模 React+Express 1-shot プロンプトで破綻しやすく、retry のたびに別の場所が壊れる drift パターン (Vite frontend 起動失敗 → login 失敗 → DM 失敗)。MTP draft 受入率は base とほぼ同じ (86% vs 87%) で **MTP head 自体は fine-tune でも機能している** が、**chat tuning が coding 1-shot を弱くする** ケース。
 
 **動作方法:**
 
@@ -1093,10 +1097,10 @@ python coding_benchmark.py \
 
 詳細レポート: [`MTP_BENCHMARK_RESULTS.md`](MTP_BENCHMARK_RESULTS.md)
 
-| ggml-org Q8_0 baseline | ggml-org Q8_0 + MTP n=3 | Unsloth Q4_K_XL + MTP n=3 |
-|---|---|---|
-| ![login](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-baseline/login.png) | ![login](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-mtp-n3/login.png) | ![login](coding_benchmark_screenshots/Qwen3_6-27B-Unsloth-UD-Q4_K_XL-mtp-n3/login.png) |
-| ![dm](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-baseline/dm.png) | ![dm](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-mtp-n3/dm.png) | ![dm](coding_benchmark_screenshots/Qwen3_6-27B-Unsloth-UD-Q4_K_XL-mtp-n3/dm.png) |
+| ggml-org Q8_0 baseline | ggml-org Q8_0 + MTP n=3 | Unsloth Q4_K_XL + MTP n=3 | 🆕 Qwopus3.6 v2 Q8_0 + MTP n=3 |
+|---|---|---|---|
+| ![login](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-baseline/login.png) | ![login](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-mtp-n3/login.png) | ![login](coding_benchmark_screenshots/Qwen3_6-27B-Unsloth-UD-Q4_K_XL-mtp-n3/login.png) | ![login](coding_benchmark_screenshots/Qwopus3_6-27B-v2-MTP-Q8_0-mtp-n3/login.png) |
+| ![dm](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-baseline/dm.png) | ![dm](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-mtp-n3/dm.png) | ![dm](coding_benchmark_screenshots/Qwen3_6-27B-Unsloth-UD-Q4_K_XL-mtp-n3/dm.png) | ![dm](coding_benchmark_screenshots/Qwopus3_6-27B-v2-MTP-Q8_0-mtp-n3/dm.png) |
 
 ### 分析
 
