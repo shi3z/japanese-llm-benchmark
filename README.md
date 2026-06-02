@@ -686,6 +686,7 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | Nemotron-3-Nano-Omni-30B (Q8_0) | 45s | 0 | OK | OK² | OK² | OK² | -- | 55/80² | 55/100² |
 | Granite-4.1-30b-8bit | 1419s | 5 | -- | OK | OK | OK | -- | 55/80 | 55/100 |
 | DeepSeek-V4-Flash IQ2XXS³ | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
+| 🆕 **JetBrains Mellum2-12B-A2.5B-Thinking (BF16)** (A100, transformers) | 8397s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
 | 🆕 Qwen3.6-27B-MTP UD-Q4_K_XL (A100, unsloth, +MTP n=3) | 821s | 5 | OK | OK | OK | -- | -- | 45/80 | 45/100 |
 | 🆕 Qwopus3.6-27B-v2-MTP Q8_0 (A100, Jackrong, +MTP n=3) | 782s | 5 | OK | OK | OK | -- | -- | 45/80 | 45/100 |
@@ -1101,6 +1102,30 @@ python coding_benchmark.py \
 |---|---|---|---|
 | ![login](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-baseline/login.png) | ![login](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-mtp-n3/login.png) | ![login](coding_benchmark_screenshots/Qwen3_6-27B-Unsloth-UD-Q4_K_XL-mtp-n3/login.png) | ![login](coding_benchmark_screenshots/Qwopus3_6-27B-v2-MTP-Q8_0-mtp-n3/login.png) |
 | ![dm](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-baseline/dm.png) | ![dm](coding_benchmark_screenshots/Qwen3_6-27B-MTP-Q8_0-mtp-n3/dm.png) | ![dm](coding_benchmark_screenshots/Qwen3_6-27B-Unsloth-UD-Q4_K_XL-mtp-n3/dm.png) | ![dm](coding_benchmark_screenshots/Qwopus3_6-27B-v2-MTP-Q8_0-mtp-n3/dm.png) |
+
+#### 🆕 JetBrains Mellum2-12B-A2.5B-Thinking (BF16) - A100 80GB / transformers
+
+JetBrains の code completion 向け **MoE (12B 総 / 2.5B active, 64 experts / top-8 routing)** モデル。`<think>...</think>` で reasoning する Thinking 系。GGUF / Ollama / vLLM とも対応待ちで、transformers 5.10.0.dev0 で初対応 ([`MellumForCausalLM`](https://huggingface.co/JetBrains/Mellum2-12B-A2.5B-Thinking))。本リポジトリに [`mellum_server.py`](mellum_server.py) を追加し、OpenAI 互換 `/v1/chat/completions` を transformers + FastAPI で提供する形で `coding_benchmark.py --llama-cpp-chat` から叩いた。
+
+| 項目 | 結果 |
+|---|---|
+| 速度ベンチ (3 prompts, BF16, A100 単 GPU) | **33.6 tok/s** aggregate (BF16, transformers TextIteratorStreamer) |
+| VRAM 占有 | 25.5 GB / 80 GB |
+| 初回 attempt | 35 min, 82.6K chars, 7 files → **55/80 (RT polling 未通過)** |
+| 5 回リトライ全体 | **5 回中 4 回 55/80** (毎回同じ RT 失敗), 1 回 frontend 起動失敗 |
+| 全体 gen time | **8397 秒 (140 分)** — A100 単 GPU の BF16 transformers 直叩きの素直なコスト |
+| TOTAL | **55/100** |
+
+**観察:**
+
+- **同じ場所 (2 秒ポーリング) を 5 連続で直せない drift パターン**。エラー文を見せてもポーリング相当のコードを毎回生成し直すだけで、構造的修正に到達しない。**Mellum の code-completion fine-tune は 1-shot フルスタック生成 + 自己修正には不向き**。
+- Build / Server / Login / Friends / Messaging はすべて通る → **基本的な React + Express の骨格は描ける**。コーディング 1-shot として下層スキルは十分。
+- BF16 単 GPU で 33.6 tok/s は vLLM が来れば 2〜3× 伸びる余地あり (現状 batch=1 transformers Streamer 経由)。
+- Q4 GGUF が出れば Mac / 5090 でも動かせるが、現時点では transformers + OpenAI 互換シム必須。
+
+| login | friends | DM | chat |
+|---|---|---|---|
+| ![login](coding_benchmark_screenshots/Mellum2-12B-A2_5B-Thinking-bf16/login.png) | ![friends](coding_benchmark_screenshots/Mellum2-12B-A2_5B-Thinking-bf16/friends.png) | ![dm](coding_benchmark_screenshots/Mellum2-12B-A2_5B-Thinking-bf16/dm.png) | ![chat](coding_benchmark_screenshots/Mellum2-12B-A2_5B-Thinking-bf16/chat.png) |
 
 ### 分析
 

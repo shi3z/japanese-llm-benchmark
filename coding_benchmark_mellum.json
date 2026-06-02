@@ -1,0 +1,32 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "Mellum2-12B-A2.5B-Thinking-bf16",
+      "generation_time": 8397.466360092163,
+      "tokens_per_second": 1.9507418142097617,
+      "raw_output_length": 82615,
+      "files_generated": 3,
+      "build_success": true,
+      "server_starts": false,
+      "test_login": true,
+      "test_friends": true,
+      "test_messaging": true,
+      "test_realtime": false,
+      "retry_count": 5,
+      "max_retries": 5,
+      "functional_score": 55.0,
+      "visual_scores": {},
+      "visual_score": 0.0,
+      "total_score": 55.0,
+      "screenshots": {
+        "login": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/Mellum2-12B-A2_5B-Thinking-bf16/login.png",
+        "friends": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/Mellum2-12B-A2_5B-Thinking-bf16/friends.png",
+        "dm": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/Mellum2-12B-A2_5B-Thinking-bf16/dm.png",
+        "chat": "/mnt/raid6/git/japanese-llm-benchmark/coding_benchmark_screenshots/Mellum2-12B-A2_5B-Thinking-bf16/chat.png"
+      },
+      "error_log": "Frontend server did not start on port 3000 within 45s"
+    }
+  ]
+}
