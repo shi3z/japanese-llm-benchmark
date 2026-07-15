@@ -286,7 +286,14 @@ def _clean_thinking(output: str) -> str:
 
 
 def _detect_server_type(api_url: str) -> str:
-    """Detect server type by checking available endpoints."""
+    """Detect server type by checking available endpoints.
+
+    Set CODING_BENCH_API=openai to force the /v1/chat/completions path
+    (llama-server with --jinja applies the model's own chat template there,
+    needed for non-DeepSeek GGUFs like Bonsai/Qwen).
+    """
+    if os.environ.get('CODING_BENCH_API') == 'openai':
+        return 'mlx'
     # For Qwen-based models (like Qwopus), prefer MLX path which uses /v1/chat/completions
     # This avoids using DeepSeek-specific tokens in _call_llama_cpp
     if ':8080' in api_url:

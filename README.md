@@ -1400,17 +1400,65 @@ NVIDIA DGX Spark（GB10 GPU、統合メモリ128GB、aarch64）での推論速�
 
 | Model | Avg Time | Tok/s | ROUGE-1 | ROUGE-2 | ROUGE-L | 備考 |
 |---|---:|---:|---:|---:|---:|---|
-| **gpt-oss:20b** | 61.3s | **27.8** | 0.617 | 0.336 | **0.310** | 安定動作 |
+| 🆕 **Ternary-Bonsai-27B Q2_0** | 129.7s | 20.4 | 0.596 | 0.294 | **0.313** | 20/20成功、thinking有効、7.2GB |
+| **gpt-oss:20b** | 61.3s | **27.8** | 0.617 | 0.336 | 0.310 | 安定動作 |
 | qwen3.5:9b | 300s | 0.0 | 0.017 | 0.001 | 0.007 | 全サンプルタイムアウト |
 
 - **gpt-oss:20b**: 27.8 tok/sで安定動作。ROUGE-L 0.310はA100（88 tok/s）の1/3の速度だが品質は同等
 - **qwen3.5**: Thinkingモデルが300秒以内に回答を完了できず全滅。DGX SparkではGPU使用率96%（他プロセスと競合）が影響の可能性
+- **Ternary-Bonsai-27B**: 詳細は[下記](#ternary-bonsai-27b-2-bit-ternary-gguf-dgx-spark)参照
+
+### Ternary-Bonsai-27B (2-bit ternary GGUF, DGX Spark)
+
+[prism-ml/Ternary-Bonsai-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-27B-gguf)（Qwen3.6-27Bベースの3値量子化、真の1.71 bpw、7.17GB）を[PrismML llama.cppフォーク](https://github.com/PrismML-Eng/llama.cpp)（Q2_0_g128カスタムCUDAカーネル、sm_121a）で評価。2026-07-15実施。
+
+**llama-bench (CUDA, -ngl 99, -fa 1)**
+
+| Test | Tok/s |
+|---|---:|
+| pp512 | 928.3 ± 7.6 |
+| tg128 | 29.6 ± 0.02 |
+
+公式公表値と比較すると、GB10のtg128 29.6はApple M5 Pro (26.2) と M5 Max (44.0) の間、H100 (98.0) の約1/3。
+
+**要約ベンチマーク (20サンプル)**: ROUGE-L **0.313** — 同一マシンのgpt-oss:20b (0.310) と同等品質。thinkingが平均約6,000文字と長く、5/20サンプルはmax_tokens=3072では思考のみで打ち切られたため8192で再実行して回収（表の平均時間はこの再実行分を含む）。GPU競合により実効tok/sは12〜28で変動。
+
+**コーディングベンチマーク**: 55/100（視覚評価スキップのためFunctionalのみ、55/80）。Build/Server/ログイン/フレンドOK、DM送受信とリアルタイム更新が4試行とも未達成。総生成時間2,655s（15〜29 tok/s）。49.86GBのMistral-Medium-3.5-128B Q2_K（45/100、7,293s）を、1/7のモデルサイズ・1/3の時間で上回った。
+
+**結論**: 7.2GBで20B級（gpt-oss:20b）と同等の日本語要約品質、コーディングでは128B Q2_Kを超えるスコア。2-bit ternaryとしては「95% of FP16」の宣伝文句に恥じない実用性。ただしthinkingが長く実効レイテンシは大きめ、稀に語彙の乱れ（「雪」→「スネ」等）が出る。
+
+<details>
+<summary>実行方法 (DGX Spark)</summary>
+
+```bash
+# PrismMLフォークをビルド (CUDA 13, sm_121a自動検出)
+git clone --depth 1 https://github.com/PrismML-Eng/llama.cpp ~/llama-cpp-prismml
+cd ~/llama-cpp-prismml && cmake -B build -DGGML_CUDA=ON -DLLAMA_CURL=OFF
+cmake --build build -j $(nproc) --target llama-cli llama-server llama-bench
+
+# モデル取得 (7.17GB)
+hf download prism-ml/Ternary-Bonsai-27B-gguf Ternary-Bonsai-27B-Q2_0.gguf --local-dir ~/models
+
+# サーバー起動
+./build/bin/llama-server -m ~/models/Ternary-Bonsai-27B-Q2_0.gguf \
+  -ngl 99 -c 32768 -fa auto --jinja --port 8081
+
+# 要約ベンチ
+python3 bonsai_gguf_benchmark.py --host 127.0.0.1:8081 --samples 20
+
+# コーディングベンチ (OpenAI互換APIパスを強制、chat template適用のため必須)
+CODING_BENCH_API=openai python3 coding_benchmark.py \
+  --models "Ternary-Bonsai-27B-Q2_0" --host 127.0.0.1:8081 \
+  --skip-visual --max-retries 3 --output coding_benchmark_bonsai27b.json
+```
+</details>
 
 ### コーディングベンチマーク (DGX Spark)
 
 | Model | 生成時間 | Tok/s | リトライ | TOTAL | 備考 |
 |---|---:|---:|---:|---:|---|
-| 🆕 **Mistral-Medium-3.5-128B Q2_K** | 7,293s | 3.3 | 3/3 | **45/100** | bartowski Q2_K (49.86GB)、Build/Server OK、Login UI失敗 |
+| 🆕 **Ternary-Bonsai-27B Q2_0** | 2,655s | 15-29 | 3/3 | **55/100** | PrismMLフォーク (7.17GB)、Login/Friend OK、DM/RT失敗、視覚評価なし |
+| **Mistral-Medium-3.5-128B Q2_K** | 7,293s | 3.3 | 3/3 | 45/100 | bartowski Q2_K (49.86GB)、Build/Server OK、Login UI失敗 |
 
 詳細は[コーディングベンチマーク § Mistral-Medium-3.5-128B Q2_K](#mistral-medium-35-128b-q2k45点--リトライ3回-)を参照。
 

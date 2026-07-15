@@ -1,0 +1,31 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "Ternary-Bonsai-27B-Q2_0",
+      "generation_time": 2654.525124311447,
+      "tokens_per_second": 14.984969670329669,
+      "raw_output_length": 18635,
+      "files_generated": 9,
+      "build_success": true,
+      "server_starts": true,
+      "test_login": true,
+      "test_friends": true,
+      "test_messaging": false,
+      "test_realtime": false,
+      "retry_count": 3,
+      "max_retries": 3,
+      "functional_score": 55.0,
+      "visual_scores": {},
+      "visual_score": 0.0,
+      "total_score": 55.0,
+      "screenshots": {
+        "login": "/home/shi3z/japanese-llm-benchmark/coding_benchmark_screenshots/Ternary-Bonsai-27B-Q2_0/login.png",
+        "friends": "/home/shi3z/japanese-llm-benchmark/coding_benchmark_screenshots/Ternary-Bonsai-27B-Q2_0/friends.png",
+        "chat": "/home/shi3z/japanese-llm-benchmark/coding_benchmark_screenshots/Ternary-Bonsai-27B-Q2_0/chat.png"
+      },
+      "error_log": ""
+    }
+  ]
+}
