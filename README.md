@@ -682,6 +682,7 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | 🆕 **DeepSeek-V4-Flash (ds4 q4)** | 307s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
 | **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
 | 🆕 **Qwen3.6-27B-MTP Q8_0** (A100, ggml-org, baseline) | 446s | 1 | OK | OK | OK | OK | OK | 75/80 | 75/100 |
+| 🆕 **poolside Laguna-XS-2.1 Q4_K_M** (A100, llama.cpp) | 214s | 5 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
 | 🆕 **Qwen3.6-27B-MTP Q8_0** (A100, ggml-org, **+MTP n=3**) | **282s** | 1 | OK | OK | OK | OK | OK | 65/80 | 65/100 |
 | Nemotron-3-Nano-Omni-30B (Q8_0) | 45s | 0 | OK | OK² | OK² | OK² | -- | 55/80² | 55/100² |
 | Granite-4.1-30b-8bit | 1419s | 5 | -- | OK | OK | OK | -- | 55/80 | 55/100 |
@@ -1746,6 +1747,74 @@ wget -O gemma4-31B-opus.q4_k_m.gguf \
 # llama-server で起動
 ./build/bin/llama-server -m gemma4-31B-opus.q4_k_m.gguf \
   -c 32768 -ngl 99 --host 0.0.0.0 --port 8080
+```
+
+---
+
+### poolside Laguna-XS-2.1 (NEW!) - A100 80GB ×1
+
+[poolside/Laguna-XS-2.1](https://huggingface.co/poolside/Laguna-XS-2.1) は poolside の **33.4B params / 約3B active MoE**（256 experts × top-8 + shared expert）thinking モデル。カスタム `laguna` アーキテクチャ、YaRN で 262,144 token コンテキスト。SWE-bench 系のコーディング特化モデル。公式 GGUF ([poolside/Laguna-XS-2.1-GGUF](https://huggingface.co/poolside/Laguna-XS-2.1-GGUF)) の Q4_K_M (19GB) を A100 80GB ×1 で動作（thinking 有効）。
+
+#### 要約 (ROUGE) ベンチマーク - 10 sample
+
+| Metric | 値 |
+|---|---|
+| ROUGE-1 / 2 / **L** | 0.465 / 0.230 / **0.227** |
+| ROUGE-L（有効9件のみ） | 0.252 |
+| 速度 (gen) | **155 tok/s** |
+| 平均 sample 時間 | 27.6秒 |
+| 完走 | 10/10 (うち1件は thinking が 32k token 全消費で content 空 → 0点) |
+
+#### コーディング (React chat app) ベンチマーク
+
+| Metric | 値 |
+|---|---|
+| **Total** | **75/100** |
+| Functional | **75/80** (Build/Server/Login/Friend/DM/**Realtime 全通過**、1項目が API-only 判定で -5) |
+| Visual | 0/20 (skip) |
+| 1次生成 | 20,273 chars in 38.4s @ **148 tok/s**、7 files |
+| リトライ | 5回 (attempt 1 で 55/80 → attempt 6 で Realtime 含め全テスト通過) |
+| 総生成時間 | **214秒** |
+
+**評価**:
+- ✅ **A100 ×1 (Q4_K_M 19GB + KV) で動く 33B MoE として Coding 75/100 は上位**（gpt-oss:20b、Qwen3.6-27B-MTP Q8_0 baseline と同点、80点組の次点）
+- ✅ 難関のリアルタイム更新（2秒ポーリング）テストを通過（55点止まりのモデルが多い中で差別化点）
+- ✅ 148-155 tok/s の高速生成（thinking 込みでも1次生成は38秒）
+- ✅ llama.cpp master が `laguna` アーキテクチャを標準サポート、公式 GGUF あり
+- ⚠️ 生成された UI はほぼ素の HTML（CSS 未適用）。機能は揃うがデザイン品質は低い
+- ⚠️ ROUGE-L 0.227 は中位 (llm-jp-4-32B-a3B 0.237 と同範囲)。コーディング特化モデルであり日本語要約は得意分野ではない
+- ⚠️ thinking が長く、要約タスクで 32k token 上限まで思考し続けて回答空になるサンプルあり (10件中1件)
+
+**注意点 (環境構築)**:
+- llama.cpp master のビルドに **CUDA 12.x が必要**（nvcc 11.8 では PDL API 未定義でコンパイルエラー）。`-DCMAKE_CUDA_COMPILER=/usr/local/cuda-12.9/bin/nvcc` 等で指定
+- chat template のデフォルトは thinking 無効。**`--chat-template-kwargs '{"enable_thinking": true}'`** で公式デフォルト（thinking 有効）に合わせる
+- llama-server が thinking を `reasoning_content` に分離するため、`/v1/chat/completions` の `content` はクリーンな最終回答のみ
+- ベンチ実行時は `CODING_BENCH_API=openai`（coding）/ `BENCH_API=openai BENCH_MAX_TOKENS=32768`（要約）で OpenAI 互換 chat 経路を使用（既存の llama.cpp 経路は DeepSeek 専用トークンでラップするため不可）
+
+**動作方法**:
+```bash
+# 標準 llama.cpp master をビルド (CUDA 12.x, sm_80)
+git clone --depth 1 https://github.com/ggml-org/llama.cpp.git && cd llama.cpp
+cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80 \
+  -DCMAKE_CUDA_COMPILER=/usr/local/cuda-12.9/bin/nvcc \
+  && cmake --build build --target llama-server -j$(nproc)
+
+# 公式 Q4_K_M GGUF を取得 (19GB)
+hf download poolside/Laguna-XS-2.1-GGUF Laguna-XS-2.1-Q4_K_M.gguf --local-dir ./models
+
+# サーバ起動 (thinking 有効)
+./build/bin/llama-server -m ./models/Laguna-XS-2.1-Q4_K_M.gguf \
+  -ngl 999 -c 131072 -fa on --jinja \
+  --chat-template-kwargs '{"enable_thinking": true}' \
+  --host 0.0.0.0 --port 8089
+
+# ベンチマーク実行
+BENCH_API=openai BENCH_MAX_TOKENS=32768 python3 benchmark.py \
+  --dataset ~/dataset_from_logs.jsonl --models "laguna-xs-2.1:33b-a3b-q4km" \
+  --samples 10 --host 127.0.0.1:8089 --output laguna_xs21_summary_results.json
+CODING_BENCH_API=openai python3 coding_benchmark.py \
+  --models "laguna-xs-2.1:33b-a3b-q4km" --host 127.0.0.1:8089 \
+  --output coding_benchmark_laguna_xs21.json --skip-visual
 ```
 
 ---
