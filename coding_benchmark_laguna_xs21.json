@@ -1,0 +1,32 @@
+{
+  "benchmark": "coding",
+  "description": "React Chat App Generation Benchmark",
+  "results": [
+    {
+      "model": "laguna-xs-2.1:33b-a3b-q4km",
+      "generation_time": 213.93320393562317,
+      "tokens_per_second": 147.99521595916067,
+      "raw_output_length": 20273,
+      "files_generated": 8,
+      "build_success": true,
+      "server_starts": true,
+      "test_login": true,
+      "test_friends": true,
+      "test_messaging": true,
+      "test_realtime": true,
+      "retry_count": 5,
+      "max_retries": 10,
+      "functional_score": 75.0,
+      "visual_scores": {},
+      "visual_score": 0.0,
+      "total_score": 75.0,
+      "screenshots": {
+        "login": "/mnt/ssdraid/git/japanese-llm-benchmark/coding_benchmark_screenshots/laguna-xs-2_1_33b-a3b-q4km/login.png",
+        "friends": "/mnt/ssdraid/git/japanese-llm-benchmark/coding_benchmark_screenshots/laguna-xs-2_1_33b-a3b-q4km/friends.png",
+        "dm": "/mnt/ssdraid/git/japanese-llm-benchmark/coding_benchmark_screenshots/laguna-xs-2_1_33b-a3b-q4km/dm.png",
+        "chat": "/mnt/ssdraid/git/japanese-llm-benchmark/coding_benchmark_screenshots/laguna-xs-2_1_33b-a3b-q4km/chat.png"
+      },
+      "error_log": ""
+    }
+  ]
+}

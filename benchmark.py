@@ -5,6 +5,7 @@ Evaluates summarization quality and speed for various LLMs
 """
 
 import json
+import os
 import time
 import requests
 from dataclasses import dataclass, asdict
@@ -180,6 +181,41 @@ def generate_summary(model: str, text: str, max_tokens: int = None, ollama_host:
         options = get_model_options(model)
         if max_tokens is not None:
             options['num_predict'] = max_tokens
+
+        # Set BENCH_API=openai to use /v1/chat/completions (llama-server --jinja applies
+        # the model's own chat template; needed for non-DeepSeek GGUFs like Laguna)
+        if os.environ.get('BENCH_API') == 'openai' and ':' in ollama_host:
+            api_url = f'http://{ollama_host}/v1/chat/completions'
+            openai_max_tokens = int(os.environ.get('BENCH_MAX_TOKENS', options.get('num_predict', 512)))
+            data = None
+            for attempt in range(3):
+                try:
+                    response = requests.post(
+                        api_url,
+                        json={
+                            'messages': [{'role': 'user', 'content': prompt}],
+                            'max_tokens': openai_max_tokens,
+                            'temperature': options.get('temperature', 0.3),
+                        },
+                        timeout=3600,
+                    )
+                    data = response.json()
+                    if response.status_code == 200 and data.get('choices'):
+                        break
+                except Exception as e:
+                    data = {'error': str(e)}
+                time.sleep(2)
+            elapsed = time.time() - start_time
+            message = ((data or {}).get('choices') or [{}])[0].get('message', {})
+            output = message.get('content', '') or ''
+            if '<think>' in output:
+                output = re.sub(r'<think>.*?</think>', '', output, flags=re.DOTALL)
+            if '</think>' in output:
+                output = output.split('</think>')[-1]
+            usage = (data or {}).get('usage', {}) or {}
+            eval_count = usage.get('completion_tokens', len(output))
+            tokens_per_sec = eval_count / elapsed if elapsed > 0 else 0
+            return output.strip(), elapsed, tokens_per_sec, eval_count
 
         # Handle host with or without port; route non-11434 ports to llama.cpp /v1/chat/completions
         is_llama_cpp = ':' in ollama_host and not ollama_host.endswith(':11434')
