@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Claude Vision evaluation of chat app screenshots.
-Evaluates design quality, usability, and completeness via Anthropic API.
+Vision evaluation of chat app screenshots.
+Evaluates design quality, usability, and completeness.
+
+Backends (VISUAL_EVAL_API env var):
+  - "anthropic" (default): Claude Vision via Anthropic API (needs ANTHROPIC_API_KEY)
+  - "local": local VLM via an OpenAI-compatible endpoint (Ollama / llama-server --mmproj)
+      VISUAL_EVAL_URL   (default http://localhost:11434/v1)
+      VISUAL_EVAL_MODEL (default qwen2.5vl:32b)
 """
 
 import base64
@@ -11,27 +17,45 @@ import re
 from pathlib import Path
 
 
+def _call_local_vlm(images_b64: list, prompt_text: str) -> str:
+    """Query a local VLM through an OpenAI-compatible /chat/completions endpoint."""
+    import requests
+    base_url = os.environ.get('VISUAL_EVAL_URL', 'http://localhost:11434/v1').rstrip('/')
+    model = os.environ.get('VISUAL_EVAL_MODEL', 'qwen2.5vl:32b')
+    content = [
+        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}}
+        for b64 in images_b64
+    ] + [{"type": "text", "text": prompt_text}]
+    response = requests.post(
+        f'{base_url}/chat/completions',
+        json={
+            'model': model,
+            'messages': [{'role': 'user', 'content': content}],
+            'max_tokens': 512,
+            'temperature': 0.0,
+        },
+        timeout=1800,
+    )
+    response.raise_for_status()
+    output = response.json()['choices'][0]['message']['content'] or ''
+    if '</think>' in output:
+        output = output.split('</think>')[-1]
+    return output.strip()
+
+
 def evaluate_screenshots(screenshot_dir: str, model_name: str) -> dict:
-    """Evaluate screenshots using Anthropic Vision API."""
+    """Evaluate screenshots using a vision model (Anthropic API or local VLM)."""
     screenshot_path = Path(screenshot_dir)
 
     # Collect existing screenshots
-    image_contents = []
+    images_b64 = []
     for name in ['login', 'friends', 'dm', 'chat']:
         path = screenshot_path / f'{name}.png'
-        if path.exists():
+        if path.exists() and path.stat().st_size > 0:
             with open(path, 'rb') as f:
-                b64 = base64.standard_b64encode(f.read()).decode('utf-8')
-            image_contents.append({
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": "image/png",
-                    "data": b64,
-                },
-            })
+                images_b64.append(base64.standard_b64encode(f.read()).decode('utf-8'))
 
-    if not image_contents:
+    if not images_b64:
         return {
             'layout': 0, 'aesthetics': 0, 'usability': 0,
             'completeness': 0, 'uniqueness': 0, 'overall': 0,
@@ -52,18 +76,31 @@ JSON形式のみで回答してください（説明不要）：
 {{"layout": X, "aesthetics": X, "usability": X, "completeness": X, "uniqueness": X, "overall": X, "comment": "一言コメント"}}"""
 
     try:
-        import anthropic
-        client = anthropic.Anthropic()
+        if os.environ.get('VISUAL_EVAL_API', 'anthropic') in ('local', 'openai', 'ollama'):
+            output = _call_local_vlm(images_b64, prompt_text)
+        else:
+            import anthropic
+            client = anthropic.Anthropic()
 
-        content = image_contents + [{"type": "text", "text": prompt_text}]
+            content = [
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "image/png",
+                        "data": b64,
+                    },
+                }
+                for b64 in images_b64
+            ] + [{"type": "text", "text": prompt_text}]
 
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=512,
-            messages=[{"role": "user", "content": content}],
-        )
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=512,
+                messages=[{"role": "user", "content": content}],
+            )
 
-        output = response.content[0].text.strip()
+            output = response.content[0].text.strip()
 
         # Extract JSON from output
         json_match = re.search(r'\{[^{}]*\}', output, re.DOTALL)

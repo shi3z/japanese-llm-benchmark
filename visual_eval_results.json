@@ -1,0 +1,317 @@
+{
+ "evaluator": "qwen2.5vl-32b-16k",
+ "results": {
+  "DeepSeek-V4-Flash-MXFP4": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 3,
+    "usability": 3,
+    "completeness": 3,
+    "uniqueness": 3,
+    "overall": 3,
+    "comment": "スクリーンショットがエラーメッセージのみであり、アプリケーションのデザインを評価する材料が不足しています。"
+   },
+   "visual_points": 12.0
+  },
+  "Ling-2_6-flash-mlx": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 3,
+    "usability": 3,
+    "completeness": 2,
+    "uniqueness": 2,
+    "overall": 2,
+    "comment": "エラーメッセージが表示されており、アプリケーションが正常に動作していないため、評価が難しい状態です。"
+   },
+   "visual_points": 8.0
+  },
+  "Mellum2-12B-A2_5B-Thinking-bf16": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 3,
+    "usability": 4,
+    "completeness": 4,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "レイアウトは整っており、使い勝手も良いが、デザインの美しさや独自性にやや欠ける。"
+   },
+   "visual_points": 16.0
+  },
+  "Nemotron-3-Nano-Omni-30B-Q4_K_M": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 3,
+    "usability": 3,
+    "completeness": 3,
+    "uniqueness": 3,
+    "overall": 3,
+    "comment": "エラーメッセージが表示されており、アプリケーションのスクリーンショットが提供されていないため、デザイン品質を評価できません。"
+   },
+   "visual_points": 12.0
+  },
+  "Nemotron-3-Nano-Omni-30B-Q8_0": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 3,
+    "usability": 3,
+    "completeness": 2,
+    "uniqueness": 2,
+    "overall": 3,
+    "comment": "基本的なログイン画面は整っているが、チャットアプリとしての要素が不足しており、独自性も限定的。"
+   },
+   "visual_points": 12.0
+  },
+  "Qwen3_5-9B-DeepSeek-V4-Flash": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 3,
+    "usability": 3,
+    "completeness": 3,
+    "uniqueness": 3,
+    "overall": 3,
+    "comment": "スクリーンショットが提供されていないため、デザイン品質を評価できません。"
+   },
+   "visual_points": 12.0
+  },
+  "Qwen3_6-27B-MTP-Q8_0-baseline": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 4,
+    "usability": 4,
+    "completeness": 5,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "レイアウトは整っており、必要な要素が揃っているが、デザインに少し個性が不足している。"
+   },
+   "visual_points": 16.0
+  },
+  "Qwen3_6-27B-MTP-Q8_0-mtp-n3": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 3,
+    "usability": 4,
+    "completeness": 2,
+    "uniqueness": 3,
+    "overall": 3,
+    "comment": "シンプルなデザインで使いやすいが、機能面や独自性に改善の余地あり"
+   },
+   "visual_points": 12.0
+  },
+  "Qwen3_6-27B-Unsloth-UD-Q4_K_XL-mtp-n3": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 3,
+    "usability": 3,
+    "completeness": 3,
+    "uniqueness": 2,
+    "overall": 3,
+    "comment": "エラーメッセージが表示されており、アプリケーションのUIが正常に表示されていないため、評価が難しい状態です。"
+   },
+   "visual_points": 12.0
+  },
+  "Qwopus3_5-9B": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 3,
+    "usability": 4,
+    "completeness": 4,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "レイアウトは整っており、使いやすさも十分ですが、デザインの美しさや独自性にやや欠ける部分があります。"
+   },
+   "visual_points": 16.0
+  },
+  "Qwopus3_6-27B-v2-MTP-Q8_0-mtp-n3": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 3,
+    "usability": 3,
+    "completeness": 3,
+    "uniqueness": 2,
+    "overall": 3,
+    "comment": "基本的なチャットアプリの要素は揃っているが、デザインがシンプルで独自性に欠ける。"
+   },
+   "visual_points": 12.0
+  },
+  "Ternary-Bonsai-27B-Q2_0": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 3,
+    "usability": 4,
+    "completeness": 4,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "レイアウトは整っており、必要な要素が揃っているが、デザインの洗練度や独自性にやや欠ける。"
+   },
+   "visual_points": 16.0
+  },
+  "codestral": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 3,
+    "usability": 3,
+    "completeness": 2,
+    "uniqueness": 2,
+    "overall": 2,
+    "comment": "エラーメッセージが表示されており、アプリケーションのUIが表示されていないため、評価が難しい状態です。"
+   },
+   "visual_points": 8.0
+  },
+  "deepseek-v4-flash-iq2xxs": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 3,
+    "usability": 4,
+    "completeness": 4,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "レイアウトは整っており、使い勝手も良いが、デザインの美しさや独自性にやや欠ける。"
+   },
+   "visual_points": 16.0
+  },
+  "ds4-final": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 4,
+    "usability": 4,
+    "completeness": 5,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "全体的に整然としたレイアウトで、必要な要素が揃っているが、デザインにやや一貫性が欠ける部分がある。"
+   },
+   "visual_points": 16.0
+  },
+  "gpt-oss_20b": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 3,
+    "usability": 4,
+    "completeness": 4,
+    "uniqueness": 2,
+    "overall": 3,
+    "comment": "基本的なチャットアプリの要素は揃っており、機能性も担保されているが、デザイン面での独自性や洗練度がやや不足している。"
+   },
+   "visual_points": 12.0
+  },
+  "granite-4_1-30b-8bit": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 3,
+    "usability": 3,
+    "completeness": 2,
+    "uniqueness": 2,
+    "overall": 3,
+    "comment": "基本的なログイン画面のレイアウトは整っているが、デザインの洗練度や独自性が不足している。また、チャットアプリとして必要な要素が不足しているため、完成度は低い。"
+   },
+   "visual_points": 12.0
+  },
+  "laguna-xs-2_1_33b-a3b-q4km": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 2,
+    "usability": 3,
+    "completeness": 4,
+    "uniqueness": 2,
+    "overall": 3,
+    "comment": "シンプルなレイアウトで必要な要素は揃っているが、デザインの洗練度や独自性に欠ける。"
+   },
+   "visual_points": 12.0
+  },
+  "llm-jp-4-32B-a3B-thinking-Q4_K_M": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 2,
+    "usability": 3,
+    "completeness": 2,
+    "uniqueness": 2,
+    "overall": 2,
+    "comment": "エラーメッセージが表示されており、アプリケーションのUIが表示されていないため、評価が難しい状態です。エラーを修正してUIが表示されたら再評価が必要です。"
+   },
+   "visual_points": 8.0
+  },
+  "llm-jp-4-32B-a3B-thinking-Q8_0": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 3,
+    "usability": 4,
+    "completeness": 4,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "レイアウトは整っており、使い勝手も良いが、デザインの美しさや独自性にやや欠ける部分がある。"
+   },
+   "visual_points": 16.0
+  },
+  "mistral-medium-3_5_128b-q2k": {
+   "scores": {
+    "layout": 3,
+    "aesthetics": 3,
+    "usability": 3,
+    "completeness": 2,
+    "uniqueness": 2,
+    "overall": 3,
+    "comment": "基本的な要素は揃っているが、デザインの洗練度や独自性に欠ける。"
+   },
+   "visual_points": 12.0
+  },
+  "qwen3-coder": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 3,
+    "usability": 4,
+    "completeness": 4,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "レイアウトは整っており、使い勝手も良いが、デザインの美しさや独自性にやや欠ける部分がある。"
+   },
+   "visual_points": 16.0
+  },
+  "qwen3_6_27b": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 4,
+    "usability": 4,
+    "completeness": 5,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "全体的に整然としたレイアウトで、必要な要素が揃っており、操作も直感的です。色使いやフォントが適切で見やすいですが、デザインにやや標準的な要素が目立ち、独自性が少し不足している印象です。"
+   },
+   "visual_points": 16.0
+  },
+  "qwen3_6_35b-a3b": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 4,
+    "usability": 4,
+    "completeness": 3,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "レイアウトは整っており、色使いやフォントも洗練されているが、機能面での完成度がやや不足している。独自性はありつつも、標準的なデザイン要素が目立つ。"
+   },
+   "visual_points": 16.0
+  },
+  "qwen3_6_35b-a3b-coding-mxfp8": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 4,
+    "usability": 4,
+    "completeness": 5,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "全体的に整然としたレイアウトで、必要な要素が揃っており、使い勝手も良い。色使いやフォントが落ち着いた印象を与えるが、独自性はやや限定的。"
+   },
+   "visual_points": 16.0
+  },
+  "qwopus": {
+   "scores": {
+    "layout": 4,
+    "aesthetics": 3,
+    "usability": 4,
+    "completeness": 4,
+    "uniqueness": 3,
+    "overall": 4,
+    "comment": "レイアウトは整っており、必要な要素も揃っているが、デザインの洗練度や独自性にやや欠ける。"
+   },
+   "visual_points": 16.0
+  }
+ }
+}

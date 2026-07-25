@@ -669,9 +669,23 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 | フレンドフォロー/解除 | 15 | Playwright: フォロー→確認→解除 |
 | DM送受信 | 15 | Playwright: メッセージ送信→相手側で確認 |
 | リアルタイム更新 | 10 | Playwright: ポーリング/WSで自動表示 |
-| デザイン品質 | 20 | Claude Vision: スクショを5段階×5観点で評価 |
+| デザイン品質 | 20 | VLM: スクショを5段階×5観点で評価 (Claude Vision またはローカルVLM) |
 
 エラー発生時はエラーメッセージをLLMにフィードバックし、最大10回リトライ可能。リトライ回数も性能指標として記録。
+
+デザイン品質評価は環境変数でバックエンドを選択できる（デフォルトはAnthropic API）:
+
+```bash
+# ローカルVLM (Ollama / llama-server のOpenAI互換エンドポイント) で外観検査
+export VISUAL_EVAL_API=local
+export VISUAL_EVAL_URL=http://localhost:11434/v1   # デフォルト
+export VISUAL_EVAL_MODEL=qwen2.5vl-32b-16k         # qwen2.5vl:32b の num_ctx=16384 版
+
+# 過去の全スクリーンショットを一括再評価
+python3 run_visual_eval.py --output visual_eval_results.json
+```
+
+※ Ollamaでqwen2.5vl:32bをそのまま使うとデフォルト128kコンテキストのKVキャッシュ確保でOOMになるため、`PARAMETER num_ctx 16384` を指定した派生モデルを `ollama create` して使うこと。
 
 ### 結果
 
@@ -707,6 +721,41 @@ LLMに「ログイン・フレンドフォロー・DM機能を持つReactチャ�
 ² Nemotron Q8_0 は **Login 画面は実際に描画されている**(紫の Sign Up ボタン + Username/Password フォーム + "Modern React Chat Application" タイトル)が、**friends.png / dm.png / chat.png はいずれも同じ Login 画面のスクリーンショット**(Playwright が Login 操作だけ済ませて遷移しないまま撮影)。Build / Server / Login UI は本物だが、SPA ルーティング後の Friends/DM/Chat 画面の実装は未到達で、表中の OK は selector 甘さの影響。実質スコアは 25 (Build) + 15 (Login) = 40/80 程度。
 
 ³ DeepSeek-V4-Flash IQ2XXS は **index.html を生成しなかった**ため、Vite が React アプリをマウントできず、**全スクリーンショットが完全な白紙**。API テストは通過するが UI は一切描画されない。生成ファイル: package.json, vite.config.js, server.js, src/main.jsx, src/App.jsx の5ファイルのみ (index.html 欠落)。55/80 は API 動作分のスコア。
+
+### デザイン品質評価 (ローカルVLM: qwen2.5vl:32b) 🆕
+
+過去の全ベンチマーク実行では `anthropic` モジュール不在によりデザイン品質評価 (20点) が一度も実行されていなかったため、**全26モデルのスクリーンショットをローカルVLM (Ollama + qwen2.5vl:32b, num_ctx=16384) で一括評価**した。評価器の詳細スコアは [visual_eval_results.json](visual_eval_results.json) 参照。
+
+**注意**: 参考値。上表の TOTAL には算入していない（既存 TOTAL は全て機能スコアのみのため互換性を維持）。また qwen2.5vl はエラー画面や白紙スクリーンショットにも 3/5 を付けることがある（コメント欄に「評価できません」と書きながら 3 を付ける等）ため、コメントと合わせて解釈すること。
+
+| Model | Layout | 美 | 使 | 完成 | 独自 | Overall | 点数 |
+|---|---|---|---|---|---|---|---:|
+| Mellum2-12B-A2.5B-Thinking (BF16) | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
+| Qwen3.6-27B-MTP Q8_0 (baseline) | 4 | 4 | 4 | 5 | 3 | **4** | 16/20 |
+| Qwopus3.5-9B | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
+| Ternary-Bonsai-27B Q2_0 | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
+| DeepSeek-V4-Flash IQ2XXS ⚠️白紙 | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
+| DeepSeek-V4-Flash (ds4) | 4 | 4 | 4 | 5 | 3 | **4** | 16/20 |
+| llm-jp-4-32B-a3B-thinking Q8_0 ⚠️白紙 | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
+| qwen3-coder:30b | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
+| qwen3.6:27b | 4 | 4 | 4 | 5 | 3 | **4** | 16/20 |
+| qwen3.6:35b-a3b | 4 | 4 | 4 | 3 | 3 | **4** | 16/20 |
+| qwen3.6:35b-a3b-coding-mxfp8 | 4 | 4 | 4 | 5 | 3 | **4** | 16/20 |
+| Qwopus (旧) | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
+| DeepSeek-V4-Flash MXFP4 (エラー画面) | 3 | 3 | 3 | 3 | 3 | **3** | 12/20 |
+| Nemotron-3-Nano-Omni-30B Q4_K_M (エラー画面) | 3 | 3 | 3 | 3 | 3 | **3** | 12/20 |
+| Nemotron-3-Nano-Omni-30B Q8_0 | 3 | 3 | 3 | 2 | 2 | **3** | 12/20 |
+| Qwen3.5-9B-DeepSeek-V4-Flash (画面なし) | 3 | 3 | 3 | 3 | 3 | **3** | 12/20 |
+| Qwen3.6-27B-MTP Q8_0 (+MTP n=3) | 4 | 3 | 4 | 2 | 3 | **3** | 12/20 |
+| Qwen3.6-27B UD-Q4_K_XL (+MTP n=3) (エラー画面) | 3 | 3 | 3 | 3 | 2 | **3** | 12/20 |
+| Qwopus3.6-27B-v2-MTP Q8_0 | 3 | 3 | 3 | 3 | 2 | **3** | 12/20 |
+| gpt-oss:20b | 3 | 3 | 4 | 4 | 2 | **3** | 12/20 |
+| granite-4.1-30b-8bit | 3 | 3 | 3 | 2 | 2 | **3** | 12/20 |
+| **poolside Laguna-XS-2.1 Q4_K_M** | 3 | 2 | 3 | 4 | 2 | **3** | 12/20 |
+| Mistral-Medium-3.5-128B Q2_K | 3 | 3 | 3 | 2 | 2 | **3** | 12/20 |
+| Ling-2.6-flash MLX 4bit (エラー画面) | 3 | 3 | 3 | 2 | 2 | **2** | 8/20 |
+| codestral:22b (エラー画面) | 3 | 3 | 3 | 2 | 2 | **2** | 8/20 |
+| llm-jp-4-32B-a3B-thinking Q4_K_M (エラー画面) | 3 | 2 | 3 | 2 | 2 | **2** | 8/20 |
 
 ---
 
@@ -1771,7 +1820,7 @@ wget -O gemma4-31B-opus.q4_k_m.gguf \
 |---|---|
 | **Total** | **75/100** |
 | Functional | **75/80** (Build/Server/Login/Friend/DM/**Realtime 全通過**、1項目が API-only 判定で -5) |
-| Visual | 0/20 (skip) |
+| Visual | 12/20 (ローカルVLM qwen2.5vl:32b による参考値、TOTAL不算入。素のHTML風で機能は揃うが装飾なし) |
 | 1次生成 | 20,273 chars in 38.4s @ **148 tok/s**、7 files |
 | リトライ | 5回 (attempt 1 で 55/80 → attempt 6 で Realtime 含め全テスト通過) |
 | 総生成時間 | **214秒** |
