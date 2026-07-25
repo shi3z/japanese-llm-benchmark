@@ -6,6 +6,7 @@ A benchmark tool for evaluating Japanese language capabilities of various LLMs.
 
 - [Features / Installation / Usage](#features)
 - [コーディングベンチマーク](#コーディングベンチマーク-reactチャットアプリ生成)
+  - [デザイン品質評価（ローカルVLM）](#デザイン品質評価-ローカルvlm-qwen25vl32b)
 - [RTX 5090 (32GB) ベンチマーク](#rtx-5090-32gb-ベンチマーク)
   - [総合ランキング](#総合ランキング)
   - [定性的評価 (S+/S/A/B/C/D Tier)](#定性的評価)
@@ -722,7 +723,7 @@ python3 run_visual_eval.py --output visual_eval_results.json
 
 ³ DeepSeek-V4-Flash IQ2XXS は **index.html を生成しなかった**ため、Vite が React アプリをマウントできず、**全スクリーンショットが完全な白紙**。API テストは通過するが UI は一切描画されない。生成ファイル: package.json, vite.config.js, server.js, src/main.jsx, src/App.jsx の5ファイルのみ (index.html 欠落)。55/80 は API 動作分のスコア。
 
-### デザイン品質評価 (ローカルVLM: qwen2.5vl:32b) 🆕
+### デザイン品質評価 (ローカルVLM: qwen2.5vl:32b)
 
 過去の全ベンチマーク実行では `anthropic` モジュール不在によりデザイン品質評価 (20点) が一度も実行されていなかったため、**全26モデルのスクリーンショットをローカルVLM (Ollama + qwen2.5vl:32b, num_ctx=16384) で一括評価**した。評価器の詳細スコアは [visual_eval_results.json](visual_eval_results.json) 参照。
 
