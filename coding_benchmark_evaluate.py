@@ -72,6 +72,10 @@ def evaluate_screenshots(screenshot_dir: str, model_name: str) -> dict:
 4. **completeness** (完成度): チャットアプリとして必要な要素（ログイン、ユーザー一覧、メッセージ、送信フォーム）が揃っているか
 5. **uniqueness** (独自性): デフォルトのBootstrapやMUIそのままではなく、独自の工夫があるか
 
+**重要**: 画像に実際に写っているものだけを評価し、写っていない要素を想像で補わないでください。
+スクリーンショットが白紙（真っ白）またはエラーメッセージのみの場合、その画面にUIは存在しません。
+全画面が白紙・エラーのみの場合は全項目を1にしてください。一部の画面だけが白紙・エラーの場合は、その分completenessを下げてください。
+
 JSON形式のみで回答してください（説明不要）：
 {{"layout": X, "aesthetics": X, "usability": X, "completeness": X, "uniqueness": X, "overall": X, "comment": "一言コメント"}}"""
 

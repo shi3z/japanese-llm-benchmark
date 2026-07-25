@@ -690,32 +690,36 @@ python3 run_visual_eval.py --output visual_eval_results.json
 
 ### 結果
 
-| Model | 生成時間 | リトライ | Build | Login | Friend | DM | RT | 機能 | TOTAL |
-|---|---:|---:|---|---|---|---|---|---:|---:|
-| **qwen3.6:35b-a3b-coding-mxfp8** | 148s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
-| **qwen3.6:27b** (RTX 5090) | 2678s | 2 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
-| 🆕 **DeepSeek-V4-Flash (ds4 q4)** | 307s | 0 | OK | OK | OK | OK | **OK** | **80/80** | **80/100** |
-| **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
-| 🆕 **Qwen3.6-27B-MTP Q8_0** (A100, ggml-org, baseline) | 446s | 1 | OK | OK | OK | OK | OK | 75/80 | 75/100 |
-| 🆕 **poolside Laguna-XS-2.1 Q4_K_M** (A100, llama.cpp) | 214s | 5 | OK | OK | OK | OK | **OK** | 75/80 | 75/100 |
-| 🆕 **Qwen3.6-27B-MTP Q8_0** (A100, ggml-org, **+MTP n=3**) | **282s** | 1 | OK | OK | OK | OK | OK | 65/80 | 65/100 |
-| Nemotron-3-Nano-Omni-30B (Q8_0) | 45s | 0 | OK | OK² | OK² | OK² | -- | 55/80² | 55/100² |
-| Granite-4.1-30b-8bit | 1419s | 5 | -- | OK | OK | OK | -- | 55/80 | 55/100 |
-| DeepSeek-V4-Flash IQ2XXS³ | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
-| 🆕 **JetBrains Mellum2-12B-A2.5B-Thinking (BF16)** (A100, transformers) | 8397s | 5 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
-| qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 55/100 |
-| 🆕 Qwen3.6-27B-MTP UD-Q4_K_XL (A100, unsloth, +MTP n=3) | 821s | 5 | OK | OK | OK | -- | -- | 45/80 | 45/100 |
-| 🆕 Qwopus3.6-27B-v2-MTP Q8_0 (A100, Jackrong, +MTP n=3) | 782s | 5 | OK | OK | OK | -- | -- | 45/80 | 45/100 |
-| Ling-2.6-flash MLX 4bit | 1612s | 3 | OK | -- | OK | OK | -- | 45/80 | 45/100 |
-| 🆕 Mistral-Medium-3.5-128B Q2_K (DGX Spark) | 7293s | 3 | OK | -- | OK(API) | OK(API) | -- | 45/80 | 45/100 |
-| qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 35/100 |
-| Qwopus3.5-9B | 5050s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
-| llm-jp-4-32B-a3B-thinking (Q8_0)¹ | 138s | 0 | OK | -- | --¹ | --¹ | -- | 45/80¹ | 45/100¹ |
-| codestral:22b | 107s | 10 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
-| llm-jp-4-32B-a3B-thinking (Q4_K_M) | 833s | 5 | -- | -- | -- | -- | -- | 25/80 | 25/100 |
-| Nemotron-3-Nano-Omni-30B (Q4_K_M-UD) | 68s | 0 | OK | -- | -- | -- | -- | 25/80 | 25/100 |
-| gemma4:e4b | 937s | 10 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
-| 🆕 Mistral-Medium-3.5-128B-4bit | 47198s | 3 | -- | -- | -- | -- | -- | 0/80 | 0/100 |
+TOTAL = 機能スコア (80点) + 外観スコア (20点)。外観はローカルVLM (qwen2.5vl:32b) がスクリーンショットを5段階×5観点で評価した overall を20点満点に換算（詳細は下記[デザイン品質評価](#デザイン品質評価-ローカルvlm-qwen25vl32b)）。白紙・エラー画面のスクリーンショットは最低点 (4/20)、スクリーンショット自体が無い場合は 0/20。
+
+| Model | 生成時間 | リトライ | Build | Login | Friend | DM | RT | 機能 | 外観 | TOTAL |
+|---|---:|---:|---|---|---|---|---|---:|---:|---:|
+| **qwen3.6:35b-a3b-coding-mxfp8** | 148s | 0 | OK | OK | OK | OK | **OK** | 80/80 | 16/20 | **96/100** |
+| **qwen3.6:27b** (RTX 5090) | 2678s | 2 | OK | OK | OK | OK | **OK** | 80/80 | 16/20 | **96/100** |
+| 🆕 **DeepSeek-V4-Flash (ds4 q4)** | 307s | 0 | OK | OK | OK | OK | **OK** | 80/80 | 16/20 | **96/100** |
+| 🆕 **Qwen3.6-27B-MTP Q8_0** (A100, ggml-org, baseline) | 446s | 1 | OK | OK | OK | OK | OK | 75/80 | 16/20 | **91/100** |
+| **gpt-oss:20b** | 258s | 3 | OK | OK | OK | OK | **OK** | 75/80 | 12/20 | **87/100** |
+| 🆕 **poolside Laguna-XS-2.1 Q4_K_M** (A100, llama.cpp) | 214s | 5 | OK | OK | OK | OK | **OK** | 75/80 | 12/20 | **87/100** |
+| 🆕 **Qwen3.6-27B-MTP Q8_0** (A100, ggml-org, **+MTP n=3**) | **282s** | 1 | OK | OK | OK | OK | OK | 65/80 | 12/20 | **77/100** |
+| qwen3.6:35b-a3b | 167s | 0 | OK | OK | OK | OK | -- | 55/80 | 12/20 | **67/100** |
+| Nemotron-3-Nano-Omni-30B (Q8_0) | 45s | 0 | OK | OK² | OK² | OK² | -- | 55/80² | 8/20 | **63/100**² |
+| Granite-4.1-30b-8bit | 1419s | 5 | -- | OK | OK | OK | -- | 55/80 | 8/20 | **63/100** |
+| DeepSeek-V4-Flash IQ2XXS³ | 1879s | 5 | OK | OK | OK | OK | -- | 55/80 | 4/20 | **59/100**³ |
+| 🆕 **JetBrains Mellum2-12B-A2.5B-Thinking (BF16)** (A100, transformers) | 8397s | 5 | OK | OK | OK | OK | -- | 55/80 | 4/20 | **59/100** |
+| 🆕 Qwopus3.6-27B-v2-MTP Q8_0 (A100, Jackrong, +MTP n=3) | 782s | 5 | OK | OK | OK | -- | -- | 45/80 | 8/20 | **53/100** |
+| 🆕 Qwen3.6-27B-MTP UD-Q4_K_XL (A100, unsloth, +MTP n=3) | 821s | 5 | OK | OK | OK | -- | -- | 45/80 | 4/20 | **49/100** |
+| Ling-2.6-flash MLX 4bit | 1612s | 3 | OK | -- | OK | OK | -- | 45/80 | 4/20 | **49/100** |
+| 🆕 Mistral-Medium-3.5-128B Q2_K (DGX Spark) | 7293s | 3 | OK | -- | OK(API) | OK(API) | -- | 45/80 | 4/20 | **49/100** |
+| llm-jp-4-32B-a3B-thinking (Q8_0)¹ | 138s | 0 | OK | -- | --¹ | --¹ | -- | 45/80¹ | 4/20 | **49/100**¹ |
+| qwen3-coder:30b | 564s | 10 | OK | OK | -- | -- | -- | 35/80 | 4/20 | **39/100** |
+| Qwopus3.5-9B | 5050s | 10 | OK | -- | -- | -- | -- | 25/80 | 4/20 | **29/100** |
+| codestral:22b | 107s | 10 | OK | -- | -- | -- | -- | 25/80 | 4/20 | **29/100** |
+| llm-jp-4-32B-a3B-thinking (Q4_K_M) | 833s | 5 | -- | -- | -- | -- | -- | 25/80 | 4/20 | **29/100** |
+| Nemotron-3-Nano-Omni-30B (Q4_K_M-UD) | 68s | 0 | OK | -- | -- | -- | -- | 25/80 | 4/20 | **29/100** |
+| gemma4:e4b | 937s | 10 | -- | -- | -- | -- | -- | 0/80 | 0/20 | **0/100** |
+| 🆕 Mistral-Medium-3.5-128B-4bit | 47198s | 3 | -- | -- | -- | -- | -- | 0/80 | 0/20 | **0/100** |
+
+※ 本文中の各モデル個別解説にある「○点」表記は外観点導入前（機能スコアのみ）の値。
 
 ¹ Q8_0 は Playwright が Friend/DM テストを通過扱いにしているが、**実際のスクリーンショットは全頁完全な白紙(React アプリが mount せず blank document が serve されている)** 。Build/Server起動は成立するもの の Friend/DM/Realtime UI は描画されておらず、テスト selector の緩さによる **誤検出**。実質的な機能スコアは 10/80 (Build) に近い。
 
@@ -725,38 +729,38 @@ python3 run_visual_eval.py --output visual_eval_results.json
 
 ### デザイン品質評価 (ローカルVLM: qwen2.5vl:32b)
 
-過去の全ベンチマーク実行では `anthropic` モジュール不在によりデザイン品質評価 (20点) が一度も実行されていなかったため、**全26モデルのスクリーンショットをローカルVLM (Ollama + qwen2.5vl:32b, num_ctx=16384) で一括評価**した。評価器の詳細スコアは [visual_eval_results.json](visual_eval_results.json) 参照。
+過去の全ベンチマーク実行では `anthropic` モジュール不在によりデザイン品質評価 (20点) が一度も実行されていなかったため、**全26モデルのスクリーンショットをローカルVLM (Ollama + qwen2.5vl:32b, num_ctx=16384) で一括評価**し、上表の TOTAL に算入した。評価器の詳細スコア・コメントは [visual_eval_results.json](visual_eval_results.json) 参照。
 
-**注意**: 参考値。上表の TOTAL には算入していない（既存 TOTAL は全て機能スコアのみのため互換性を維持）。また qwen2.5vl はエラー画面や白紙スクリーンショットにも 3/5 を付けることがある（コメント欄に「評価できません」と書きながら 3 を付ける等）ため、コメントと合わせて解釈すること。
+**評価プロンプトの注意**: qwen2.5vl は白紙・エラー画面のスクリーンショットに対しても存在しないUIを想像で補って 3〜4/5 を付けることがあるため、「画像に写っているものだけを評価し、白紙・エラーのみの場合は全項目1」という指示をプロンプトに明記している（`coding_benchmark_evaluate.py`）。overall 1 (4/20) の行はスクリーンショットが白紙またはエラー画面のみだったモデル。
 
 | Model | Layout | 美 | 使 | 完成 | 独自 | Overall | 点数 |
 |---|---|---|---|---|---|---|---:|
-| Mellum2-12B-A2.5B-Thinking (BF16) | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
-| Qwen3.6-27B-MTP Q8_0 (baseline) | 4 | 4 | 4 | 5 | 3 | **4** | 16/20 |
-| Qwopus3.5-9B | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
-| Ternary-Bonsai-27B Q2_0 | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
-| DeepSeek-V4-Flash IQ2XXS ⚠️白紙 | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
-| DeepSeek-V4-Flash (ds4) | 4 | 4 | 4 | 5 | 3 | **4** | 16/20 |
-| llm-jp-4-32B-a3B-thinking Q8_0 ⚠️白紙 | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
-| qwen3-coder:30b | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
+| Qwen3.6-27B-MTP Q8_0 (baseline) | 4 | 3 | 4 | 5 | 3 | **4** | 16/20 |
+| DeepSeek-V4-Flash (ds4) | 4 | 4 | 4 | 4 | 3 | **4** | 16/20 |
 | qwen3.6:27b | 4 | 4 | 4 | 5 | 3 | **4** | 16/20 |
-| qwen3.6:35b-a3b | 4 | 4 | 4 | 3 | 3 | **4** | 16/20 |
 | qwen3.6:35b-a3b-coding-mxfp8 | 4 | 4 | 4 | 5 | 3 | **4** | 16/20 |
-| Qwopus (旧) | 4 | 3 | 4 | 4 | 3 | **4** | 16/20 |
-| DeepSeek-V4-Flash MXFP4 (エラー画面) | 3 | 3 | 3 | 3 | 3 | **3** | 12/20 |
-| Nemotron-3-Nano-Omni-30B Q4_K_M (エラー画面) | 3 | 3 | 3 | 3 | 3 | **3** | 12/20 |
-| Nemotron-3-Nano-Omni-30B Q8_0 | 3 | 3 | 3 | 2 | 2 | **3** | 12/20 |
-| Qwen3.5-9B-DeepSeek-V4-Flash (画面なし) | 3 | 3 | 3 | 3 | 3 | **3** | 12/20 |
-| Qwen3.6-27B-MTP Q8_0 (+MTP n=3) | 4 | 3 | 4 | 2 | 3 | **3** | 12/20 |
-| Qwen3.6-27B UD-Q4_K_XL (+MTP n=3) (エラー画面) | 3 | 3 | 3 | 3 | 2 | **3** | 12/20 |
-| Qwopus3.6-27B-v2-MTP Q8_0 | 3 | 3 | 3 | 3 | 2 | **3** | 12/20 |
-| gpt-oss:20b | 3 | 3 | 4 | 4 | 2 | **3** | 12/20 |
-| granite-4.1-30b-8bit | 3 | 3 | 3 | 2 | 2 | **3** | 12/20 |
+| Qwen3.6-27B-MTP Q8_0 (+MTP n=3) | 4 | 3 | 4 | 2 | 2 | **3** | 12/20 |
+| Ternary-Bonsai-27B Q2_0 | 4 | 3 | 4 | 4 | 2 | **3** | 12/20 |
+| gpt-oss:20b | 3 | 2 | 3 | 4 | 2 | **3** | 12/20 |
 | **poolside Laguna-XS-2.1 Q4_K_M** | 3 | 2 | 3 | 4 | 2 | **3** | 12/20 |
-| Mistral-Medium-3.5-128B Q2_K | 3 | 3 | 3 | 2 | 2 | **3** | 12/20 |
-| Ling-2.6-flash MLX 4bit (エラー画面) | 3 | 3 | 3 | 2 | 2 | **2** | 8/20 |
-| codestral:22b (エラー画面) | 3 | 3 | 3 | 2 | 2 | **2** | 8/20 |
-| llm-jp-4-32B-a3B-thinking Q4_K_M (エラー画面) | 3 | 2 | 3 | 2 | 2 | **2** | 8/20 |
+| qwen3.6:35b-a3b | 4 | 4 | 4 | 2 | 3 | **3** | 12/20 |
+| Qwopus (旧) | 4 | 3 | 4 | 4 | 2 | **3** | 12/20 |
+| Nemotron-3-Nano-Omni-30B Q8_0 | 3 | 3 | 3 | 2 | 2 | **2** | 8/20 |
+| Qwopus3.6-27B-v2-MTP Q8_0 | 3 | 3 | 3 | 2 | 2 | **2** | 8/20 |
+| granite-4.1-30b-8bit | 3 | 3 | 3 | 2 | 2 | **2** | 8/20 |
+| DeepSeek-V4-Flash MXFP4 (エラー画面) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| Ling-2.6-flash MLX 4bit (エラー画面) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| Mellum2-12B-A2.5B-Thinking BF16 (白紙) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| Nemotron-3-Nano-Omni-30B Q4_K_M (エラー画面) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| Qwen3.5-9B-DeepSeek-V4-Flash (エラー画面) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| Qwen3.6-27B UD-Q4_K_XL (+MTP n=3) (エラー画面) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| Qwopus3.5-9B (白紙) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| codestral:22b (エラー画面) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| DeepSeek-V4-Flash IQ2XXS (白紙) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| llm-jp-4-32B-a3B-thinking Q4_K_M (エラー画面) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| llm-jp-4-32B-a3B-thinking Q8_0 (白紙) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| Mistral-Medium-3.5-128B Q2_K (白紙/エラー) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
+| qwen3-coder:30b (白紙) | 1 | 1 | 1 | 1 | 1 | **1** | 4/20 |
 
 ---
 
@@ -1819,9 +1823,9 @@ wget -O gemma4-31B-opus.q4_k_m.gguf \
 
 | Metric | 値 |
 |---|---|
-| **Total** | **75/100** |
+| **Total** | **87/100** |
 | Functional | **75/80** (Build/Server/Login/Friend/DM/**Realtime 全通過**、1項目が API-only 判定で -5) |
-| Visual | 12/20 (ローカルVLM qwen2.5vl:32b による参考値、TOTAL不算入。素のHTML風で機能は揃うが装飾なし) |
+| Visual | 12/20 (ローカルVLM qwen2.5vl:32b で評価。素のHTML風で機能は揃うが装飾なし) |
 | 1次生成 | 20,273 chars in 38.4s @ **148 tok/s**、7 files |
 | リトライ | 5回 (attempt 1 で 55/80 → attempt 6 で Realtime 含め全テスト通過) |
 | 総生成時間 | **214秒** |

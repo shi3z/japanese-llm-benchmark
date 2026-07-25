@@ -24,10 +24,10 @@
     "completeness": 4,
     "uniqueness": 2,
     "overall": 3,
-    "comment": "シンプルなレイアウトで必要な要素は揃っているが、デザインの洗練度や独自性に欠ける。 (evaluator: qwen2.5vl-32b-16k local VLM, 参考値: total_scoreには不算入)"
+    "comment": "シンプルなレイアウトで必要な要素は揃っているが、デザインの美しさや独自性に欠ける。 (evaluator: qwen2.5vl-32b-16k local VLM)"
    },
-   "visual_score": 0.0,
-   "total_score": 75.0,
+   "visual_score": 12.0,
+   "total_score": 87.0,
    "screenshots": {
     "login": "/mnt/ssdraid/git/japanese-llm-benchmark/coding_benchmark_screenshots/laguna-xs-2_1_33b-a3b-q4km/login.png",
     "friends": "/mnt/ssdraid/git/japanese-llm-benchmark/coding_benchmark_screenshots/laguna-xs-2_1_33b-a3b-q4km/friends.png",
